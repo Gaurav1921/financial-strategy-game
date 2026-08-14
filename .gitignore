@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.db
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Simulation output (regenerable — see BALANCE_TESTING.md for the numbers that matter)
+sim/results*.csv
+
+# Editor / OS
+.vscode/
+.DS_Store
