@@ -124,6 +124,16 @@ part of the game.
    (65/35 split, simulation-tested - see BALANCE_TESTING.md Part 1).
    Reputation has real teeth: two proven betrayals and you lose access to
    easy income and get worse terms on anything you still manage to form.
+   **Two allies at a time, max.** Not a limit anyone had actually decided
+   on, it fell out of how the bots were tuned, until it got questioned
+   directly. A JV partnership and a Defense Pact currently share the same
+   relationship (allying with someone covers both at once, not two
+   separate slots), and the cap applies to that combined relationship.
+   Simulation-tested up to unlimited: the six-archetype pod plateaus at a
+   cap of 3 or higher with no further change (only 2-3 archetypes actively
+   seek alliances there at all), so a real table, where every human player
+   might want to ally, is likely a bigger risk than this bot test can show.
+   2 is the validated, recommended cap. See BALANCE_TESTING.md Part 8.
 6. **Takeovers** - go after a rival's whole company (see Section 6).
 
 ## 6. Combat: attacking and defending

@@ -774,3 +774,53 @@ small, symmetric friction on both entering and exiting Real Estate seems to
 discourage exactly the kind of low-cost flip-flopping into cash that made
 the fragility possible in the first place. Off by default, same as idle
 cash erosion and the income tax, a depth addition, not a required fix.
+
+---
+
+# Part 8 - How many allies can one player have at once
+
+## Why this exists
+A direct question caught something that was never actually a game rule:
+`try_form_jv_human` capped a player at 2 simultaneous allies, but that cap
+existed only as bot-tuning, never promoted to an actual documented rule or
+tested for whether it matters to balance. Worth checking directly, since a
+well-connected leader stacking unlimited Defense Pact support could
+threaten the anti-snowball fix Part 7 just validated: defense includes
+`ally.cash * 0.3` per ally, uncapped, that scales without bound.
+
+## Method
+`MAX_ALLIES` swept from 2 to unlimited (100), against both the clean
+rational-bot baseline and the mistakes-driven fragility, with the current
+recommended configuration (margin 1.05, raid fatigue 0.5).
+
+## Result
+| `MAX_ALLIES` | Bot baseline | + mistakes |
+|---|---|---|
+| 2 | Socialite 100%, gap 13.6% | Socialite 85.9% |
+| 3 | Socialite 100%, gap 13.6% | Socialite 82.5% |
+| 4-100 | Socialite 100%, gap 13.6% | Socialite 82.5% (identical to 3) |
+
+Raising the cap from 2 to 3 costs a small amount of margin under realistic
+play (85.9% → 82.5%), then flattens out completely, no further change all
+the way to unlimited. That plateau is a pod limitation, not proof
+uncapped alliances are safe: only 2-3 of the six archetypes (Socialite,
+Diversifier, Casual) actively seek alliances at all in this bot model, the
+rest never try. A real table, where any of 6-7 human players might want to
+ally, especially a popular or well-negotiated leader, is a materially
+bigger risk than this test can demonstrate. The cap matters more in
+practice than in this specific simulation.
+
+## Recommendation
+**Keep `MAX_ALLIES = 2`**, the validated number with the widest margin.
+JV partnerships and Defense Pacts currently share the same relationship
+(one allying-with-someone slot covers both), not two independent caps,
+that's a modeling simplification worth revisiting if the two mechanics
+ever need to diverge (e.g. a player who wants a Defense Pact with someone
+they'd never form a Joint Venture with).
+
+## What Part 8 doesn't cover
+- Whether JVs and Defense Pacts should have independent caps rather than
+  sharing one relationship.
+- Real human alliance-seeking behavior, this is still bots, and the
+  specific limitation here (only some archetypes ally at all) likely
+  understates how much a cap matters at a real table.
