@@ -8,9 +8,14 @@ __pycache__/
 node_modules/
 frontend/dist/
 
-# Simulation output (regenerable — see docs/BALANCE_TESTING.md for the numbers that matter)
-sim/results*.csv
-sim/*_results.csv
+# Internal/local-only tooling — not tracked in this repo.
+# Balance-testing methodology and results are documented in
+# docs/BALANCE_TESTING.md; this is just the code that produced them, kept
+# local rather than public. VS Code's auto-init task (.vscode/tasks.json)
+# still points at scripts/setup-env.ps1, which will only work on machines
+# where that file exists locally — that's intentional.
+sim/
+scripts/
 
 # Editor / OS
 # (.vscode/ is intentionally tracked — settings.json + tasks.json auto-init
