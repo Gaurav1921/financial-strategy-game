@@ -54,6 +54,12 @@ chance to build up.
   guaranteed climax where season-long trust either pays off or gets cashed
   in.
 
+**To be explicit**: only *attacks* are phase-gated. Every other money
+move, growing your company, buying or selling Real Estate, the Market,
+loans, Joint Ventures, stays available in every single round of the game,
+Building Phase included. The Building Phase doesn't pause the economy, it
+only pauses combat.
+
 Simulation-tested: this structure measurably works (see BALANCE_TESTING.md
 Part 2) - it doesn't fully solve the "one aggressive player snowballs
 unopposed" risk on its own (Section 9 covers this honestly), but it clearly
@@ -69,8 +75,23 @@ part of the game.
 2. **Real Estate / Safe Assets** - lower income (5%/round) but this is
    *the* protected asset class: it counts far more toward your defense than
    cash does (see Section 6). The deliberate "safe harbor" choice.
+   **Where it comes from**: you're buying into the open market, diversified
+   property, not one specific listing you're competing with other players
+   for. No scarcity minigame, no "someone else got there first", the same
+   abstraction "The Market" below already uses for stocks: you're accessing
+   an outside financial system, not drawing down a shared pool at the
+   table.
+   **Buying and selling both cost something.** A review caught that selling
+   Real Estate (below) had a real 15% cost but buying it was completely
+   free, an asymmetry nobody had actually decided on, it just fell out of
+   the sell-side mechanic being designed first. Fixed: buying now also
+   takes a small closing cost (~3%), real but far cheaper than a distress
+   sale, so Real Estate is a genuine commitment on both ends, not a free
+   in/costly out lever. Simulation-tested clean, no balance impact, and
+   modestly *helps* the anti-snowball margin under realistic play (85.9%→
+   90.6%, see BALANCE_TESTING.md Part 7).
    **Liquidating it**: nothing else can touch your Real Estate, but you can
-   choose to, converting some of it back to cash at any time takes a 15%
+   choose to, converting some of it back to cash at any time takes the 15%
    haircut (real transaction friction, not full market value), the price of
    turning safety back into flexibility on your own terms. Simulation-tested
    two ways: as a rescue valve for a player low on cash, and as a deliberate

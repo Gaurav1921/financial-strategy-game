@@ -753,3 +753,24 @@ short. The mechanic is built, off by default, and would need either a much
 weaker anti-snowball setting or a much richer leader archetype to ever
 actually exercise it, neither of which describes the currently recommended
 configuration.
+
+## Addendum: buying Real Estate wasn't free, and now it is on purpose
+A review caught a real asymmetry: selling Real Estate (above) takes a real
+15% haircut, but buying it was completely frictionless, an accident of
+build order (the sell-side mechanic existed first), not a decision.
+Added a small buy-side closing cost (`REAL_ESTATE_PURCHASE_COST`, ~3%) and
+tested it against the current recommended configuration (margin 1.05, raid
+fatigue 0.5):
+
+| Configuration | Result |
+|---|---|
+| Bot baseline, cost off | Socialite 100%, gap 13.6% |
+| Bot baseline, cost on | Socialite 100%, gap 13.0% (negligible) |
+| + mistakes, cost off | Socialite 85.9% |
+| + mistakes, cost on | **Socialite 90.6%** |
+
+Clean, no downside, and modestly helps the mistakes-driven fragility, a
+small, symmetric friction on both entering and exiting Real Estate seems to
+discourage exactly the kind of low-cost flip-flopping into cash that made
+the fragility possible in the first place. Off by default, same as idle
+cash erosion and the income tax, a depth addition, not a required fix.
