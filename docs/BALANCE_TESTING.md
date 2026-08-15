@@ -734,3 +734,22 @@ actually fine.
   hasn't been tested against.
 - Player counts other than 6, this margin was only retuned against the
   six-archetype pod Part 2 validated against.
+
+## Addendum: real estate liquidation as a tactical attack-funding move
+Requested and built: a challenger who's short on attack power to join a
+pile-on can sell Real Estate to fund it (`liquidate_real_estate_for_attack`,
+`TACTICAL_LIQUIDATION_ENABLED`). Tested at both the old margin (1.3, where
+a leader has more time to build a real defense) and the new one (1.05):
+**it never actually triggers**, 0 times across 300 test games at either
+setting. Traced directly: by the time a challenger (almost always
+Socialite) is considered, their attack power already comfortably exceeds
+the leader's defense in every observed case (e.g. 25.8 vs 7.1, 44.3 vs
+7.7), because the anti-snowball fix (at either margin) catches leaders
+before their defense has time to grow into something a solvent challenger
+couldn't already beat with cash alone. This isn't a bug, it's a real
+consequence of Part 7's fix actually working: a well-functioning
+correction mechanism means challengers rarely find themselves genuinely
+short. The mechanic is built, off by default, and would need either a much
+weaker anti-snowball setting or a much richer leader archetype to ever
+actually exercise it, neither of which describes the currently recommended
+configuration.

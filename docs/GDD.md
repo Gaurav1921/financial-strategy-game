@@ -73,9 +73,13 @@ part of the game.
    choose to, converting some of it back to cash at any time takes a 15%
    haircut (real transaction friction, not full market value), the price of
    turning safety back into flexibility on your own terms. Simulation-tested
-   as a rescue valve for a player low on cash (`sim/human_sim.py`), not yet
-   tested as a deliberate mid-game tactical choice (e.g. liquidating to fund
-   an attack).
+   two ways: as a rescue valve for a player low on cash, and as a deliberate
+   move to fund joining a pile-on against a runaway leader. The tactical
+   version never actually triggered in testing (0 times across 300 games,
+   see BALANCE_TESTING.md Part 7's addendum): a well-functioning anti-
+   snowball fix catches leaders before their defense grows large enough
+   that a solvent challenger would ever need the extra cash. Not a dead
+   end, just evidence the correction mechanic is doing its job.
 3. **The Market** - buy a stake in *any* player's company. Believe in
    someone → profit if they grow. Think they're about to fall → bet against
    them instead. No partnership or consent needed, just a read on where
