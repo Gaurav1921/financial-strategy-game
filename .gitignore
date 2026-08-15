@@ -13,5 +13,6 @@ sim/results*.csv
 sim/*_results.csv
 
 # Editor / OS
-.vscode/
+# (.vscode/ is intentionally tracked — settings.json + tasks.json auto-init
+# the conda environment on folder open, see ENVIRONMENT_SETUP.md)
 .DS_Store

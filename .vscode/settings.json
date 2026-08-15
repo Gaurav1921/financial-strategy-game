@@ -1,0 +1,4 @@
+{
+  "python.defaultInterpreterPath": "${env:USERPROFILE}\\miniconda3\\envs\\consortium\\python.exe",
+  "python.terminal.activateEnvironment": true
+}
