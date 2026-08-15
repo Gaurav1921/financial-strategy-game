@@ -69,6 +69,13 @@ part of the game.
 2. **Real Estate / Safe Assets** - lower income (5%/round) but this is
    *the* protected asset class: it counts far more toward your defense than
    cash does (see Section 6). The deliberate "safe harbor" choice.
+   **Liquidating it**: nothing else can touch your Real Estate, but you can
+   choose to, converting some of it back to cash at any time takes a 15%
+   haircut (real transaction friction, not full market value), the price of
+   turning safety back into flexibility on your own terms. Simulation-tested
+   as a rescue valve for a player low on cash (`sim/human_sim.py`), not yet
+   tested as a deliberate mid-game tactical choice (e.g. liquidating to fund
+   an attack).
 3. **The Market** - buy a stake in *any* player's company. Believe in
    someone → profit if they grow. Think they're about to fall → bet against
    them instead. No partnership or consent needed, just a read on where
@@ -79,6 +86,14 @@ part of the game.
    BALANCE_TESTING.md Part 2, Finding 2). Overleverage enough and you can go
    bankrupt: creditors seize ~85% of your holdings and the remaining debt is
    discharged - diminished but still in the game (see Section 8.4).
+   **The money has to come from somewhere.** Loans are drawn from **the
+   Bank**, which has real, finite capital, not an infinite tap; if enough
+   players lean on credit at once, the Bank's capacity tightens and later
+   borrowers get worse terms or can't borrow at all, a real credit crunch,
+   not just a rule on paper. **Player-to-player lending** (a living player
+   lends directly to another at a rate above the Bank's, in exchange for
+   real counterparty risk, the lender eats it if the borrower defaults) is
+   designed but not yet simulated - see BALANCE_TESTING.md Part 5.
 5. **Joint Ventures** - team up with an ally, pool money for a return
    neither gets solo, but they can drain it early and keep the majority
    (65/35 split, simulation-tested - see BALANCE_TESTING.md Part 1).
@@ -131,6 +146,40 @@ Pact**: a promise that if your partner is attacked, you help defend them.
 Borrowed from Civilization's alliance mechanics. Gives alliances a
 protective dimension, not just a money-making one.
 
+**Declare to reinforce.** A review flagged a real contradiction: Section 6
+requires visible Power (including ally backing) so the table can gang up on
+a leader, but that seemed to force every alliance into the open, leaving no
+room for the secret, bluffable commitments the game's Coup DNA depends on.
+Fixed by reusing the existing Declare/Audit system on the Pact itself:
+- **Declared**: you publicly commit to the pact. It visibly adds to your
+  partner's defense number, a real deterrent, but everyone now knows you're
+  allied.
+- **Covert**: you stay off the record. It doesn't count toward your
+  partner's visible defense, so an attacker can be lured into a fight that
+  looks winnable and isn't, but if it's ever audited and found to be a
+  bluffed commitment with nothing behind it, that's penalized harder than a
+  failed audit, same as any other false Declaration.
+Simulation-tested (`sim/human_sim.py`, see BALANCE_TESTING.md Part 3): with
+roughly half of all pacts going covert, this reproduces the validated
+Finding 5 numbers exactly in the rational-play case. It doesn't reopen the
+anti-snowball fix on its own.
+
+**Ending a Pact.** Either side can walk away from a Defense Pact whenever
+they want, allies aren't locked in forever, but flip-flopping isn't free
+for a pact that was ever public:
+- **Ending a covert pact** costs nothing. Nobody outside the pact knew it
+  existed, so there's no reputation to spend.
+- **Ending a declared pact** costs a reputation mark, the same "publicly
+  broken your word" cost as a Joint Venture drain, and takes effect at the
+  *start of next round*, not immediately. You can't declare a pact to prop
+  up a defense number for one attack and un-declare it the instant that
+  attack resolves. Two broken declared pacts (mirroring the JV reputation
+  tax's threshold) means the same tax: no easy income, worse terms on
+  anything you still manage to form.
+This means switching who you back is always possible, real allegiance
+shifts are part of the game, but doing it loudly and often costs you the
+same way backstabbing a Joint Venture partner does. Not yet simulated.
+
 ## 8. Bluffing, hidden roles, and personal stakes
 
 ### 8.1 Power Cards - Coup's mechanic, reused for finance
@@ -147,11 +196,25 @@ player:
 - **The Broker** - skims cash from a rival / blocks being skimmed from
 - **The Banker** - better loan terms / blocks someone calling in a loan against you
 - **The Insider** - peek at a hidden thing (a rival's holdings, a rumor's truth)
-- one more - still open, see Section 9
+- **The Analyst** (recommended 7th card, not yet locked in) - manipulate
+  the Market: force a rival's stock position to be revealed, or issue a
+  public "report" that moves how much a target's company is perceived to
+  be worth for one round / blocks another player's Analyst move against
+  you or your holdings. The Market (Section 5.3) is the one core money
+  mechanic none of the other six cards touch at all, everything else
+  clusters around income, takeovers, loans, and information. Alternatives
+  considered: **The Regulator** (can freeze or partially seize a rival's
+  Real Estate for a round, the only card that would ever threaten the
+  otherwise-untouchable safe asset) and **The Fixer** (clears reputation
+  marks / drain count, a "clean slate" card). The Analyst is the strongest
+  fit for making Power Cards reinforce the financial side of the game
+  rather than adding another combat lever.
 
 Not yet simulated - bluffing behavior is hard to model meaningfully without
 simulating the bluffing itself, which is a separate piece of work (see
-BALANCE_TESTING.md Part 2, "what this doesn't cover").
+BALANCE_TESTING.md Part 2, "what this doesn't cover"). `sim/human_sim.py`'s
+trait framework makes this more tractable than when it was first deferred,
+still real, unstarted work.
 
 ### 8.2 Hidden Raider role
 A minority of players are secretly **Raiders** - their win condition
@@ -168,9 +231,35 @@ caught lying is penalized harder than a failed audit.
 
 ### 8.4 Ghost/Observer status
 A bankrupted or fully-taken-over company doesn't vanish. Its founder
-becomes a **Board Observer**: limited residual influence (can leak one true
-or false piece of information, gets a vote in the final round). Keeps
-eliminated players engaged instead of just disengaging and quitting.
+becomes a **Board Observer**, and gets a vote in the final round, same as
+before.
+
+**Backing, not just leaking.** A review flagged that "leak one piece of
+information" is too thin to fill up to two-thirds of a Conflict Phase in a
+live, one-sitting session, and simulation confirmed it: a heavily-farmed
+player could spend up to 7 of 15 rounds with nothing meaningful to do (see
+BALANCE_TESTING.md Part 3, `AvgBrokeRoundsPerPlayer`). Fixed by giving a
+Board Observer a real choice instead of a one-time move: the moment you go
+broke, you pick one living player to **back**.
+
+This is deliberately **not a financial stake**. A first draft gave the
+backer a 15% cut of the backed player's future captures, and that was
+wrong: you're not trying to win anymore once you're a Board Observer, your
+own Power isn't coming back in any way that matters, so growing it via a
+cut does nothing for you, it just taxes the living player you back for no
+return, there's no real answer to "why would I give up 15% of what I just
+earned to someone who's out of the game." Corrected: backing is social and
+informational, no cash or Power changes hands. You can still leak one piece
+of information about anyone at any point, and your backing choice is what
+your final-round vote is actually for, if the top two players finish
+within a hair of each other, whichever one more Board Observers were
+backing wins the tie. That's the whole mechanic, made real instead of
+flavor text.
+Simulation-validated: `AvgDeadRoundsPerPlayer` (rounds with nothing
+meaningful to do, defined as "broke AND haven't picked who to back yet")
+drops to 0 at every player count tested, because the choice only needs to
+be made once, immediately, and win rates are unchanged from baseline since
+nothing financial is touched.
 
 ### 8.5 The Final Round
 Deliberately different from the rest of the game. Game theory says rational
@@ -195,6 +284,66 @@ for a group of friends playing together.
   not being mandatory, and the final round being different - a lot to land
   in one sitting with a first-time group. Probably needs a guided first
   few rounds rather than a rules dump.
+- **Round count and Building Phase length don't scale with player count.**
+  `sim/human_sim.py`'s player-count sweep found the fixed 15-round
+  structure is fine at 6 to 7 players but breaks down below that: at 3 to 4
+  players the eventual winner is locked in by round 2 or 3 of 15, meaning
+  most of a small-group game plays out as a foregone conclusion. Needs a
+  player-count-scaled round count, not yet designed.
+- ~~Ordinary human inconsistency weakens the anti-snowball fix more than
+  expected~~ **mostly resolved**: Finding 5's fix only ever won by a 1.1%
+  margin (405.9 vs 401.3 Power), a coin flip dressed up as a validated
+  result, which is why realistic imperfection could flip it so easily.
+  Fixed at the root: the "how far ahead is a runaway leader" threshold that
+  triggers the gang-up mechanic was lowered from 1.3x to 1.05x, keeping the
+  correction engaged continuously instead of only firing once a lead is
+  already dramatic. Combined with the existing raid fatigue mitigation,
+  Socialite now wins 85.9% of games even under the mistakes fragility
+  (Aggressor down to 13.3%, still a viable if underdog strategy, not
+  eliminated). See BALANCE_TESTING.md Part 7. Two of the four financial
+  mechanics below (long/short stocks, peer lending) still misbehave even on
+  this stronger foundation and need their own fixes.
+- **A "fear after being hit" reaction was deliberately not modeled.**
+  Multiple attempts to simulate a player playing scared and defensive for a
+  few rounds after a takeover all backfired in archetype-specific ways
+  (see BALANCE_TESTING.md Part 3). Real psychological reaction to being
+  attacked is probably a real design factor, but needs a dedicated,
+  archetype-aware modeling pass, not a bolt-on trait.
+- ~~What an eliminated player does for the rest of a live session~~
+  **resolved**: Board Observers now back a living player for a cut of their
+  future captures (Section 8.4), simulation-validated to zero out dead
+  rounds. See BALANCE_TESTING.md Part 3.
+- **Defense Pact breakup has no defined cost.** Declaring or ending an
+  alliance mid-game isn't addressed anywhere in Sections 6-7: can a player
+  freely flip allegiance round to round with no consequence? Currently
+  undefined. Proposed fix, not yet simulated: ending a covert pact is free
+  (nobody knew anyway); ending a *declared* pact costs a reputation mark
+  and takes effect starting the following round, not the same round,
+  mirroring the JV reputation tax's 2-strike pattern.
+- **Two of four financial-depth mechanics are now validated, two still
+  need fixes**: real long/short stock positions, a progressive income tax
+  (assessed once a round on every source of profit combined, company/Real
+  Estate income, capture proceeds, and Joint Venture proceeds together,
+  matching how income tax actually works), idle cash erosion, and
+  peer-to-peer lending (all in `sim/human_sim.py`, requested to make the
+  game rely more on financial decisions and less on combat). Against the
+  original 1.1%-margin baseline, three of the four broke it. Retested
+  against the widened anti-snowball margin (see the item above): **idle
+  cash erosion and the income tax are now clean** (the income tax fix also
+  directly answers "why does Aggressor barely pay it": the first version
+  only taxed passive company/Real Estate income, which Aggressor barely
+  generates since their strategy is staying liquid, the corrected version
+  taxes all profit including raid proceeds, and Aggressor now pays the
+  highest effective rate of any archetype, 7.2% vs 3-5% for everyone else).
+  **Long/short stocks and peer-to-peer lending still misbehave**, for the
+  reasons diagnosed in BALANCE_TESTING.md Part 6 (Aggressor's cash-only
+  strategy is structurally insulated from anything that only adds risk to
+  company/Real Estate/stocks; peer loans rescue cash-strapped players, who
+  are usually Aggressor's own recent victims, speeding up how fast they
+  become worth raiding again). Real estate can now also be voluntarily
+  liquidated for cash (at a 15% haircut) when a player is low on liquidity,
+  the direct answer to "Real Estate can't be touched by an attacker, so
+  what's a player's own way to convert it to cash when they need to."
 
 ## 10. MVP Scope (Live Mode)
 
