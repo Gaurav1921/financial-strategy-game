@@ -8,11 +8,11 @@ __pycache__/
 node_modules/
 frontend/dist/
 
-# Simulation output (regenerable — see BALANCE_TESTING.md for the numbers that matter)
+# Simulation output (regenerable — see docs/BALANCE_TESTING.md for the numbers that matter)
 sim/results*.csv
 sim/*_results.csv
 
 # Editor / OS
 # (.vscode/ is intentionally tracked — settings.json + tasks.json auto-init
-# the conda environment on folder open, see ENVIRONMENT_SETUP.md)
+# the conda environment on folder open, see docs/ENVIRONMENT_SETUP.md)
 .DS_Store
