@@ -1,0 +1,1 @@
+"""Consortium backend application package."""

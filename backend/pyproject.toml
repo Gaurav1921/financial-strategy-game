@@ -1,0 +1,35 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "B",   # flake8-bugbear: likely bugs and design problems
+    "S",   # flake8-bandit: security issues
+    "C90", # mccabe: cyclomatic complexity
+    "N",   # pep8-naming
+    "D",   # pydocstyle: docstring conventions
+    "UP",  # pyupgrade: modern Python syntax
+    "SIM", # flake8-simplify
+    "I",   # isort: import ordering
+]
+ignore = [
+    "D203", # conflicts with D211 (blank line before class docstring)
+    "D213", # conflicts with D212 (multi-line summary on first line)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D104"] # empty package docstrings are fine for now
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
