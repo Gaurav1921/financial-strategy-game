@@ -10,6 +10,7 @@ frontend/dist/
 
 # Simulation output (regenerable — see BALANCE_TESTING.md for the numbers that matter)
 sim/results*.csv
+sim/*_results.csv
 
 # Editor / OS
 .vscode/
