@@ -1023,3 +1023,84 @@ everything in this file.
 - Whether diminishing returns on Company reinvestment (a second, additive
   fix for the same "solved formula" problem, not yet tried) would help on
   top of this.
+
+---
+
+# Part 11 - Total-wealth capture, defender rewards, and Power-only visibility
+
+## Why this exists
+Two direct changes to the takeover mechanic, requested outright: captures
+should draw from a target's *total* wealth, not just liquid cash + Company
+(forcing Real Estate liquidation if needed), and a failed attack's lost
+stake should reward the defender and the Bank instead of vanishing. Both
+built and tested. A separate, related conversation about what players can
+actually see landed on Power-only visibility, replacing an earlier,
+now-superseded "show the full breakdown" design from Part 9's
+neighborhood, see GDD.md Section 6 for the final version and the reasoning
+that got there.
+
+## Total-wealth capture
+`TOTAL_WEALTH_CAPTURE_ENABLED`: a successful takeover now owes
+`TAKEOVER_CAPTURE_PCT * target.total_power()` (or
+`COUNTER_ATTACK_CAPTURE_PCT` for a counter-attack), collected cash first,
+then Company, then Real Estate at the standard 15% liquidation haircut if
+the rest isn't enough (`collect_payment`, shared with the tax-collection
+cascades already in place). Real Estate is no longer automatically
+untouched, it's just usually the last thing drawn on.
+
+| Configuration | Result |
+|---|---|
+| Off (original: liquid only) | Socialite 85.9%, gap 11.1% |
+| **On (total wealth)** | **Socialite 90.0%, gap 21.3%** |
+
+Strengthens the anti-snowball margin further, doesn't weaken it. Likely
+mechanism: a bigger single hit against a Real-Estate-heavy target also
+inflates whoever landed it (usually Aggressor) faster, tripping the
+"gang up" correction (Part 7) sooner than the liquid-only version would.
+
+## Defender reward on a failed attack
+`DEFENDER_REWARD_ENABLED`: the attacker's lost stake (still 50% of what
+they committed, unchanged) no longer vanishes. It's collected via the same
+cascade (`penalize_failed_attacker`, cash then Company then Real Estate),
+split evenly between the defender who successfully protected themselves
+and the Bank.
+
+**Result: no measurable difference, on or off, identical numbers.** Traced
+directly: across 500 sample games, takeover attempts failed **0 times out
+of 2,714**, counter-attack attempts failed **0 times out of 1,360**. These
+bots use perfect information (true defense values, not an estimate) to
+decide who's even worth attacking, so they never actually initiate a fight
+they'd lose. The mechanic is correctly built, it's just structurally
+untestable by this bot model, it only has anything to reward once players
+are deciding under real uncertainty, which is exactly what Power-only
+visibility (below) introduces and this bot pod still doesn't model.
+
+## Power-only visibility (superseding the "full breakdown" design)
+A first pass at "what should players see" (see GDD.md Section 6's own
+history) proposed showing every player's full asset breakdown, on the
+reasoning that the anti-snowball mechanic needs players to read "who's
+undefended" and Power alone can't tell them that. Correctly rejected in
+conversation: an accurate number, or even an accurate bucketed rating,
+removes the decision the same way full transparency does, "if you already
+know their defense, attacking anyway is just stupidity." Landed on:
+**only Power is shown, exactly; everything else is unknown unless it goes
+through a Declaration (always self-referential, matching Coup) that any
+player can Audit** (a cost, with lying penalized harder than a failed
+Audit, already established in Section 8.3).
+
+**Not simulated, and can't be with the current bot model**: every
+win-margin number in this file assumes bots read exact defense values
+directly. Modeling "an attacker only knows what's been Declared or
+Audited" would require building a genuine hidden-information layer into
+the bots (a real project, closer to the Power Cards / Declare-Audit
+simulation work that's already deferred, see GDD.md Section 8.1). Until
+that exists, treat every validated margin in this file as describing a
+more-informed table than Power-only visibility will actually produce.
+
+## What Part 11 doesn't cover
+- Simulating Power-only visibility itself, needs a real hidden-information
+  bot model, not built.
+- Whether the defender-reward split (50/50 to defender/Bank) is the right
+  ratio, untestable until failed attacks can actually happen in the sim.
+- Retesting total-wealth capture at other player counts or in combination
+  with all other mechanics from Parts 6-10 active simultaneously.

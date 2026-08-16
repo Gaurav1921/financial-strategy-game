@@ -116,8 +116,15 @@ part of the game.
 1. **Your Own Company** - the baseline. Generates income each round
    proportional to its size (10%/round). Growing it is always safe, if slow.
 2. **Real Estate / Safe Assets** - lower income (5%/round) but this is
-   *the* protected asset class: it counts far more toward your defense than
-   cash does (see Section 6). The deliberate "safe harbor" choice.
+   *the* asset that actually keeps you safe: it counts far more toward
+   your defense than cash does (see Section 6), so it's what actually
+   stops an attack from succeeding in the first place. It's no longer
+   automatically untouched *if* an attack does succeed (Section 6's
+   "what happens if a takeover succeeds" now draws from total wealth,
+   Real Estate included, as a last resort after cash and Company), so
+   think of it as "the asset that makes you hard to beat," not "the
+   asset nothing can ever touch." The deliberate "safe harbor" choice,
+   just not an absolute one anymore.
    **Where it comes from**: you're buying into the open market, diversified
    property, not one specific listing you're competing with other players
    for. No scarcity minigame, no "someone else got there first", the same
@@ -133,10 +140,10 @@ part of the game.
    in/costly out lever. Simulation-tested clean, no balance impact, and
    modestly *helps* the anti-snowball margin under realistic play (85.9%→
    90.6%, see BALANCE_TESTING.md Part 7).
-   **Liquidating it**: nothing else can touch your Real Estate, but you can
-   choose to, converting some of it back to cash at any time takes the 15%
-   haircut (real transaction friction, not full market value), the price of
-   turning safety back into flexibility on your own terms. Simulation-tested
+   **Liquidating it voluntarily**: converting some of it back to cash on
+   your own terms, any time, takes the same 15% haircut (real transaction
+   friction, not full market value) that a forced capture would.
+   Simulation-tested
    two ways: as a rescue valve for a player low on cash, and as a deliberate
    move to fund joining a pile-on against a runaway leader. The tactical
    version never actually triggered in testing (0 times across 300 games,
@@ -181,28 +188,46 @@ part of the game.
 
 ## 6. Combat: attacking and defending
 
-**What everyone can actually see.** Asked directly, and it turned out to
-be a real gap: every balance-testing result in this project assumes
-players see each other's *full breakdown*, because that's literally what
-the bots read to decide who to attack, but the doc had only ever committed
-to showing the single combined **Power** number, never the breakdown
-itself. That's not the same thing, and the difference matters: a player
-with high Power from a big company could be sitting on almost no liquid
-cash (a weak attacker, easy to misjudge from Power alone), while someone
-with modest Power but all-cash could be genuinely dangerous and invisible
-on a Power-only leaderboard. **Fixed: every player's full breakdown, Cash,
-Company, Real Estate, Stock positions, Debt, is visible to everyone at
-all times, not just the combined Power figure.** That's what actually
-makes "read the warning signs" (below) possible, and it's what the
-anti-snowball mechanic (Section 9) has depended on the whole time without
-it ever being written down as a rule. The only thing that stays hidden on
-top of that is alliance backing: declared Defense Pacts are public
-(Section 7), covert ones stay hidden until a fight happens, JVs and Power
-Cards are always public knowledge of who's partnered with whom, only the
-hold/drain decision itself is secret each round.
+**What everyone can actually see.** Asked directly, and it went through
+two drafts. First draft: show every player's full breakdown (Cash,
+Company, Real Estate, stocks, Debt) at all times, reasoning that the
+anti-snowball mechanic depends on players reading "who's rich and
+undefended," and Power alone doesn't tell you that (someone with high
+Power from a big company could have almost no liquid cash, someone with
+modest Power but all cash could be genuinely dangerous, and a Power-only
+leaderboard can't distinguish them). Correctly rejected: an accurate
+number, or even an accurate bucketed rating, is just as conclusive as the
+real thing, it removes the actual decision instead of restoring it, "if
+you already know how good their defense is, attacking anyway is just
+stupidity."
 
-Seeing two rivals' cash piles and correctly reading "we're both exposed,
-let's team up" is the game working as intended, not a leak.
+**Settled design: only Power is shown, exactly, always. Nothing else is
+visible by default.** Everything else, cash, Company, Real Estate,
+stocks, Debt, exact defense or attack capability, is genuinely unknown
+unless it passes through Declare/Audit (Section 8.3):
+- **Declarations are always about your own position.** You can claim
+  something about your own holdings to deter or bluff, the same way Coup
+  works, you don't get to declare things about someone else.
+- **Any player can Audit any Declaration**, not just whoever it directly
+  threatens, at a resource cost, revealing the truth. Caught lying is
+  penalized harder than a failed Audit (already established).
+- Declared Defense Pacts stay the one exception that's automatically
+  public (Section 7), since the whole point of declaring one is the
+  deterrent value; covert ones stay hidden until a fight actually happens.
+
+This makes "who's rich and undefended" a real question you have to spend
+a resource to answer, not a leaderboard lookup, seeing two rivals' cash
+piles (by choosing to Audit them) and correctly reading "we're both
+exposed, let's team up" is the game working as intended.
+
+**Honest tradeoff**: every win-margin number in `BALANCE_TESTING.md`
+comes from bots with perfect information, they read exact defense values
+directly rather than spending an Audit to learn them. Real play, with
+only Power visible by default, makes the "gang up on a leader" mechanic
+genuinely harder than the bots demonstrate, real players need to actually
+invest in Audits to approach what the bots get for free. Not a flaw, real
+texture, but the validated margins describe a more-informed table than
+the live game will actually have.
 
 - **Attack power is your cash only** (a portion of it), plus allies
   backing you, **not your Company, Real Estate, or stock holdings.** Those
@@ -244,8 +269,30 @@ let's team up" is the game working as intended, not a leak.
   shrinks by 97%. This only works if relative Power is clearly visible to
   everyone at the table - that's a UI requirement, not just a rules one.
 - **What happens if a takeover succeeds:** the attacker captures 25% of the
-  target's liquid (cash + company) value. Real Estate is untouched - it's
-  protected by design, not just by the defense math.
+  target's **total wealth**, not just liquid cash + company. Changed from
+  the original "Real Estate untouched" design, per direct instruction: the
+  target pays from cash first, then Company, then Real Estate (at the
+  standard 15% liquidation haircut, Section 5.2) if the rest isn't enough.
+  Real Estate is still the best defense you can build, it still counts
+  far more than cash toward whether an attack succeeds at all, but it's no
+  longer 100% immune to what happens *after* an attack lands. Simulation-
+  tested: this strengthens the anti-snowball margin further (85.9% →
+  90.0%, gap 11.1% → 21.3%, see BALANCE_TESTING.md Part 11), because a
+  bigger single hit against a Real-Estate-heavy target also makes whoever
+  landed it look like a bigger threat sooner, triggering the "gang up"
+  correction faster.
+- **What happens if a takeover fails:** the attacker still loses 50% of
+  what they committed, same as before, but that loss no longer just
+  vanishes. Half goes to the defender who successfully protected
+  themselves, a real reward for defending, not just an absence of loss;
+  half goes to the Bank (Section 5.4). If the attacker doesn't have enough
+  cash to cover it, the same cash-then-Company-then-Real-Estate cascade
+  applies to them too. Built and tested, but honestly: these bots use
+  perfect information and never actually fail an attack they attempt
+  (0 failures across 2,700+ attempts tested), so this mechanic can't be
+  balance-validated by bot simulation at all, it only matters once real
+  players are deciding under the reduced visibility above, where
+  miscalculating is actually possible.
 
 ## 7. Defense Pacts - alliances that protect, not just profit
 
