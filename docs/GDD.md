@@ -151,10 +151,11 @@ part of the game.
    snowball fix catches leaders before their defense grows large enough
    that a solvent challenger would ever need the extra cash. Not a dead
    end, just evidence the correction mechanic is doing its job.
-3. **The Market** - buy a stake in *any* player's company. Believe in
-   someone → profit if they grow. Think they're about to fall → bet against
-   them instead. No partnership or consent needed, just a read on where
-   things are headed.
+3. **The Market** - **redesigned around Industries, not individual
+   rivals** (see the full writeup below, right after this list). You
+   invest in a *sector*, not a specific player's company, and read
+   round-by-round scenario text to decide where the money's headed.
+   Replaces the earlier "long/short a specific rival" design entirely.
 4. **Loans** - borrow to invest bigger than your savings allow. Interest
    rises the more leveraged you get (not a flat rate - flat-rate loans were
    simulation-tested and turned out to be a risk-free exploit, see
@@ -185,6 +186,81 @@ part of the game.
    might want to ally, is likely a bigger risk than this bot test can show.
    2 is the validated, recommended cap. See BALANCE_TESTING.md Part 8.
 6. **Takeovers** - go after a rival's whole company (see Section 6).
+
+## 5A. Industries and Market Events
+
+A full redesign of The Market, decided directly: instead of betting for or
+against one specific rival's company, players invest in **Industries**,
+and a round-by-round event system moves those industries up or down based
+on logical, readable cause and effect, not random noise.
+
+**Onboarding.** Every player picks a company name, an icon, and **one
+Industry** for their company, alongside the existing name/logo
+customization (Section 8.6). Ten industries, fixed:
+
+**Healthcare, Technology, Pharma, Energy, Financial Services, Consumer
+Retail, Agriculture, Manufacturing, Media & Entertainment, Property.**
+
+("Property," not "Real Estate": that name is already the defensive asset
+class, Section 5.2, using it twice would be genuinely confusing at the
+table.) With 5-7 players and 10 industries, most industries have zero or
+one player in them, a few might overlap, that's fine, industries aren't a
+scarce resource players compete over.
+
+**The Market itself**: instead of taking a stake in one named rival, you
+put money into an **Industry**, long (betting it rises) or short (betting
+it falls). It pays out based on that industry's movement each round, not
+any individual company's fortunes.
+
+**Scenario events, one per round.** Each round, one scenario is drawn and
+shown to the whole table as plain text (no numbers), with a **logical**,
+not random, effect on each of the ten industries, most scenarios move only
+a few industries and leave the rest flat. A player's own Company income
+that round is affected too, if their company is in an affected industry,
+on top of whatever Market bets anyone placed on that sector. This is the
+main answer to a separate problem raised this session (the Building Phase
+reducing to a solved formula, Section 4): reading a scenario correctly is
+real financial-literacy skill, not a dice roll, and it's genuinely
+unpredictable round to round, so it can't be memorized the way a fixed
+income-rate comparison could.
+
+A first working set of scenarios (not exhaustive, more can be added
+without touching the mechanic itself):
+
+| Scenario | Industries affected |
+|---|---|
+| "A major regional conflict breaks out" | Energy ↑↑, Manufacturing ↑, Pharma ↑, Agriculture ↓, Consumer Retail ↓ |
+| "A breakthrough vaccine is announced" | Pharma ↑↑, Healthcare ↑, Media & Entertainment ↑ |
+| "Interest rates are cut sharply" | Property ↑↑, Consumer Retail ↑, Technology ↑ |
+| "A major tech company reports a data breach" | Technology ↓↓, Financial Services ↓ |
+| "A bumper harvest season" | Agriculture ↑, Consumer Retail ↑ |
+| "A severe drought hits key farming regions" | Agriculture ↓↓, Consumer Retail ↓ |
+| "A new blockbuster streaming platform launches" | Media & Entertainment ↑↑, Technology ↑ |
+| "Oil prices crash on oversupply" | Energy ↓↓, Manufacturing ↑, Consumer Retail ↑, Agriculture ↑ |
+| "A recession is officially declared" | Consumer Retail ↓↓, Financial Services ↓↓, Technology ↓, Property ↓ |
+| "A landmark trade deal is signed" | Manufacturing ↑↑, Agriculture ↑, Technology ↑, Consumer Retail ↑ |
+| "Consumer confidence hits a record high" | Consumer Retail ↑↑, Media & Entertainment ↑, Property ↑ |
+| "A cybersecurity crisis hits financial institutions" | Financial Services ↓↓, Technology ↓ |
+| "Housing demand surges in major cities" | Property ↑↑, Financial Services ↑ |
+| "Global supply chains face major disruption" | Manufacturing ↓↓, Consumer Retail ↓, Technology ↓, Agriculture ↓ |
+| "A wave of mergers sweeps the healthcare industry" | Healthcare ↑, Pharma ↑, Financial Services ↑ |
+| "Renewable energy investment surges" | Energy ↑, Manufacturing ↑, Technology ↑ |
+| "A major retailer files for bankruptcy" | Consumer Retail ↓↓, Property ↓, Financial Services ↓ |
+| "Streaming and gaming demand hits an all-time high" | Media & Entertainment ↑↑, Technology ↑ |
+| "A wave of automation disrupts manufacturing jobs" | Manufacturing ↑, Technology ↑, Consumer Retail ↓ |
+| "A quiet, uneventful year in the markets" | everything flat |
+
+`↑↑` / `↓↓` a strong move, `↑` / `↓` a moderate one, unlisted industries
+stay flat that round. Exact percentages not yet set, needs a balance pass
+once this is built (see below).
+
+**Not yet built or simulated.** This is a genuine pivot away from the
+long/short-on-a-rival mechanic validated earlier in `BALANCE_TESTING.md`
+(Parts 6, 7, and 9), not an addition alongside it, so those specific
+numbers no longer apply once this replaces it. Needs: the scenario pool
+built out further (a real market-research pass on the economic logic,
+per-industry multiplier sizing, wiring into `sim/human_sim.py`, and a full
+balance retest against everything else already validated this session.
 
 ## 6. Combat: attacking and defending
 
@@ -510,6 +586,12 @@ build, makes losses sting more and wins feel more like *yours* - especially
 for a group of friends playing together.
 
 ## 9. Open risks (named honestly, not yet solved)
+- **Industries and Market Events (Section 5A) are designed but not built
+  or simulated.** A real pivot away from the long/short-on-a-rival Market
+  design that Parts 6, 7, and 9 of BALANCE_TESTING.md already validated,
+  those specific numbers stop applying once this replaces it. Needs the
+  scenario pool built out, per-industry multiplier sizing, implementation
+  in `sim/human_sim.py`, and a full balance retest.
 - ~~Power Cards' 7th card - still undecided~~ **resolved**: The Analyst is
   locked in (Section 8.1). Power Cards as a whole are still unsimulated.
 - ~~Raider/Builder ratio and reveal timing~~ **ratio simulated**: roughly 1
