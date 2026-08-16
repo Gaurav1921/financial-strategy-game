@@ -48,9 +48,23 @@ attacks were allowed from round one, whoever forms alliances fastest could
 immediately gang up on solo/slower players before anyone's had a fair
 chance to build up.
 
-- **Building Phase** (first third of the game): **no attacks allowed at
+- **Building Phase** (4 to 6 rounds, **length hidden, rolled secretly at
+  the start of the game, never announced**): **no attacks allowed at
   all.** Only growing your company, investing, and quietly forming
-  alliances. Everyone gets equal time to build a position.
+  alliances. Everyone gets equal time to build a position. The length is
+  hidden on purpose: with Company income (10%/round) beating Real Estate
+  (5%/round) and no combat to defend against yet, a known, fixed Building
+  Phase length reduces the whole first third of the game to one
+  memorizable formula, "max Company until round N, then pivot to
+  defense," a repeat player solves once and never has to think about
+  again (caught directly, see BALANCE_TESTING.md Part 10). Hiding the
+  length turns "when do I start defending" into a real read on the
+  table's warning signs instead of a lookup table, without resorting to
+  random luck, which would fight the game's financial-strategy identity.
+  Simulation-tested balance-neutral to slightly positive; whether it
+  actually stops a human from finding a dominant pattern after repeat
+  plays can't be tested by bots at all, that's a human-playtesting
+  question like everything else still open in Section 9.
 - **Conflict Phase** (rest of the game): takeovers unlock. By now the game
   is about who built the strongest position, not who allied first.
 - **Final Round**: deliberately different (see Section 8.5) - the
@@ -429,12 +443,17 @@ for a group of friends playing together.
   not being mandatory, and the final round being different - a lot to land
   in one sitting with a first-time group. Probably needs a guided first
   few rounds rather than a rules dump.
-- **Round count and Building Phase length don't scale with player count.**
-  `sim/human_sim.py`'s player-count sweep found the fixed 15-round
-  structure is fine at 6 to 7 players but breaks down below that: at 3 to 4
-  players the eventual winner is locked in by round 2 or 3 of 15, meaning
-  most of a small-group game plays out as a foregone conclusion. Needs a
-  player-count-scaled round count, not yet designed.
+- **Round count doesn't scale with player count.** `sim/human_sim.py`'s
+  player-count sweep found the fixed 15-round structure is fine at 5 to 7
+  players but breaks down below that: at 3 to 4 players the eventual
+  winner is locked in by round 2 of 15, meaning most of a small-group game
+  plays out as a foregone conclusion. That's why the range is 5 to 7
+  (Section 1), not 4 to 7: 4 shows the identical failure as 3. If 4-player
+  support is wanted as a real product decision, this needs a
+  player-count-scaled round count built and validated, not just the label
+  changed back. (Building Phase *length* is now hidden and randomized
+  per game, see above, a related but separate fix for a different
+  problem, "the Building Phase is a solved formula," not this one.)
 - ~~Ordinary human inconsistency weakens the anti-snowball fix more than
   expected~~ **resolved**: Finding 5's fix only ever won by a 1.1% margin
   (405.9 vs 401.3 Power), a coin flip dressed up as a validated result,

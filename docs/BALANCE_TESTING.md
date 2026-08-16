@@ -963,3 +963,63 @@ is between 4 and 5, not 3 and 4. GDD.md now states **5 to 7 players**, not
   baseline specifically, only validated as clean under realistic play.
 - A player-count-scaled round structure for a hypothetical 3-4 player mode,
   which is now explicitly out of scope rather than a bug to fix.
+
+---
+
+# Part 10 - The Building Phase was a solved formula
+
+## Why this exists
+Caught directly: with Company income at 10%/round and Real Estate at
+5%/round, and no attacks possible until the Conflict Phase, Real Estate's
+one advantage (defense weight) is worth exactly zero for the entire
+Building Phase. A purely rational solo player has no reason to ever touch
+it before round 6. Since the Building Phase length is fixed at 5 rounds
+and stated as a rule everyone knows, even the "when do I start pivoting to
+defense" question has a single calculable answer. The whole first third of
+the game reduces to "max Company until round N, then pivot," a formula a
+repeat player solves once and never has to think about again. Not a
+balance bug, a design gap: no luck, no real decision, once you've done the
+math.
+
+## The fix: hide the Building Phase length, don't add luck
+Random dice/luck would fight the game's financial-strategy identity.
+Hidden information doesn't: the actual length is unknowable to players in
+advance, the same way a real market doesn't announce the exact day a
+downturn starts. `VARIABLE_BUILDING_PHASE_ENABLED` rolls the length once
+per game, secretly, from `BUILDING_PHASE_RANGE` (4-6 rounds inclusive,
+never revealed to players). "When do I start defending" becomes a real
+read on warning signs (who's already building Real Estate, who looks
+aggressive) instead of a lookup table.
+
+## Result
+Tested against the mistakes + raid fatigue configuration, fixed 5-round
+Building Phase vs. randomized 4-6:
+
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Fixed Building Phase = 5 | Socialite 85.9% | 11.1% |
+| Variable Building Phase = 4-6 | Socialite 89.0% | 8.7% |
+
+Balance-neutral to slightly positive, no regression.
+
+## The honest limit of this test
+This confirms the mechanic doesn't break anything numerically. It does
+**not**, and structurally cannot, confirm the actual claim it's meant to
+address: that hiding the length stops a real human from finding and
+memorizing a dominant strategy after a handful of games. Bots don't learn
+or adapt across separate games, they run the same fixed archetype logic
+every trial regardless of what happened last time. Whether this genuinely
+keeps the Building Phase interesting on a group's fifth game night is a
+human-playtesting question, the same limitation that applies to
+everything in this file.
+
+## What Part 10 doesn't cover
+- Whether 4-6 rounds is the right range, or whether it should scale with
+  the eventual player-count-aware round structure (Section 9's still-open
+  item).
+- A "warning" mechanic (e.g. a signal the round before Conflict Phase
+  actually opens) that would make the hidden length a readable risk
+  instead of a total blind spot, mentioned as a design idea, not built.
+- Whether diminishing returns on Company reinvestment (a second, additive
+  fix for the same "solved formula" problem, not yet tried) would help on
+  top of this.
