@@ -1374,7 +1374,9 @@ anti-snowball correction underneath them.
   rebalanced; flagged as a known property, not fixed.
 - `BANK_DEPOSIT_RATE` and `BANK_DEPOSIT_BUFFER` were set from the existing
   rate ladder (below every active return, matching the loan-rate floor)
-  rather than swept, unlike `PEER_LOAN_LEND_FRACTION` in Part 9.
+  rather than swept, unlike `PEER_LOAN_LEND_FRACTION` in Part 9. A future
+  pass could sweep these the same way if deposits ever look like they're
+  doing more than the modest, safe job intended.
 - Gold's actual balance effect can't be measured by this bot pod, since
   only two low-relevance archetypes (Turtle, Diversifier) ever touch it,
   see above.
@@ -1384,7 +1386,74 @@ anti-snowball correction underneath them.
 - Co-Founder buyout and golden parachute payouts haven't been tested in
   combination with Industries, Gold, or the tax mechanics active at the
   same time.
-  A future pass could sweep these the same way if deposits ever look like
-  they're doing more than the modest, safe job intended.
 - All of Part 12's mechanics against player counts other than 6, and
   against Parts 6-11's mechanics active at the same time.
+
+---
+
+# Part 13 - Scenario tiers were still fixed numbers wearing a random costume
+
+## Why this exists
+Called out directly, and it was a real gap: Part 12's Industries system drew
+a random *scenario* each round, but once drawn, every named industry's
+effect was still one of exactly four hardcoded constants (+0.08, +0.04,
+-0.04, -0.08). That's not genuinely variable, it's a fixed lookup table
+with an extra layer of indirection, a repeat player could still eventually
+learn "Manufacturing always moves by exactly 4% or 8%, in one of four
+possible amounts." Bank deposit interest is the one rate that's supposed
+to stay a flat, guaranteed number, on purpose, the explicit safe floor
+everything else compares against. Every other rate that reads the
+scenario system (Company income, Real Estate, Gold, Market positions,
+Joint Ventures) was not supposed to be memorizable at all.
+
+## The fix
+`SCENARIOS` entries now store a tier label (`"++"`, `"+"`, `"-"`, `"--"`)
+per industry instead of a fixed float. `SCENARIO_TIER_RANGES` maps each
+tier to a `(min, max)` range (`"++"`: 4-20%, `"+"`: 1-8%, `"-"`: -8 to
+-1%, `"--"`: -20 to -4%), and `draw_scenario` rolls an actual number from
+that range with `rng.uniform()` fresh every time the scenario is drawn,
+never the same value twice. Gold gets its own, smaller, asymmetric
+`GOLD_TIER_RANGES` (no `"--"` tier, it's a hedge, its job is losing less
+than everything else, not swinging as hard). Gold's ordinary-year base
+also stopped being a flat 2%: it's now rolled every round from
+`GOLD_BASE_RANGE` (0.5% to 3.5%), reflecting that a real commodity price
+drifts on its own even with no news, unlike Company income, which
+represents a structural business return and correctly keeps a fixed base
+(same reasoning that keeps Bank deposits fixed).
+
+Real Estate, Market positions, and Joint Ventures all needed zero code
+changes: they already read `scenario_deltas` as plain numbers, so once
+`draw_scenario` started rolling real numbers into that dict instead of
+constants, every downstream consumer inherited the randomization for
+free. Confirmed directly: logging the same industry (Manufacturing) across
+repeated draws of the same "landmark trade deal" scenario produced
+0.0763, 0.0701, 0.1296, 0.0773, four different numbers from the same
+scenario, same tier, same industry.
+
+## Result
+Mistakes + raid fatigue harness, 1500 trials:
+
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Industries with randomized ranges | Socialite 70.3% | 7.3% |
+| + Gold, Bank deposits, idle cash erosion, Co-Founder, all together | Socialite 59.9% | 6.0% |
+
+Still clean by this file's standing bar (leader stays Socialite, no
+archetype crosses 50%, nowhere near the 1.1% coin-flip fragility from
+Part 7). The wider ranges pushed archetype diversity further than the
+fixed-tier version did: Diversifier's win share grew from single digits
+to 8-11% depending on configuration, and Turtle won a nonzero share of
+games (1.1-1.7%) for the first time in this file's entire testing
+history. Wider, genuinely unpredictable variance keeps opening real paths
+for archetypes other than Socialite and Aggressor to compete, the same
+direction Part 12 first found, more pronounced now that the numbers
+themselves aren't memorizable.
+
+## What Part 13 doesn't cover
+- The exact tier ranges (4-20%, 1-8%) were chosen directly, not swept;
+  a future pass could sweep the ceiling the way `PEER_LOAN_LEND_FRACTION`
+  and `CO_FOUNDER_EQUITY_RATE` were, to check whether 20% is meaningfully
+  different from, say, 15% or 30% at the extreme end.
+- Whether the widened Diversifier and Turtle win shares hold up against
+  Parts 1-11's mechanics active in every combination, not just the Part 12
+  set tested here.

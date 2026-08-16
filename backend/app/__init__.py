@@ -1,1 +1,1 @@
-"""Consortium backend application package."""
+"""Hostile Ledger backend application package."""

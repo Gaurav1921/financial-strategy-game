@@ -1,4 +1,4 @@
-# [Working Title: "Consortium"] - Game Design Doc
+# Hostile Ledger - Game Design Doc
 
 ## 1. Pitch
 A web-based financial strategy game for a small group of friends (**5 to
@@ -275,30 +275,40 @@ without touching the mechanic itself):
 | "A wave of automation disrupts manufacturing jobs" | Manufacturing ↑, Technology ↑, Consumer Retail ↓ | - |
 | "A quiet, uneventful year in the markets" | everything flat | - |
 
-`↑↑` / `↓↓` a strong move (+/-8%), `↑` / `↓` a moderate one (+/-4%),
-"slight" a small one (+/-2%), unlisted industries stay flat that round.
-Real Estate reacts to the Property row too, at half strength (see below).
-Built and simulation-tested, see `BALANCE_TESTING.md` Part 12, this was a
-genuine pivot away from the long/short-on-a-rival mechanic validated
-earlier (Parts 6, 7, and 9), not an addition alongside it, those specific
-numbers no longer apply, this replaced them.
+**None of these are fixed percentages.** `↑↑` / `↓↓` and `↑` / `↓` are
+*characters*, not numbers, a strong move always means "roughly the same
+shape of strong," not "exactly 8%, every single time." The actual size is
+rolled fresh each time that scenario lands: a strong move (`↑↑`/`↓↓`)
+comes out anywhere from 4% to 20% in that direction, a moderate one
+(`↑`/`↓`) anywhere from 1% to 8%. The ceiling is set wide on purpose, a
+real crisis or boom can occasionally run far hotter than the typical case,
+the same way a real recession isn't always exactly as bad as the last one.
+Unlisted industries stay flat that round. Real Estate reacts to the
+Property row too, at half strength (see below), inheriting whatever number
+Property actually rolled that round, not a separately-rolled number of its
+own. Built and simulation-tested, see `BALANCE_TESTING.md` Part 12 and 13,
+this was a genuine pivot away from the long/short-on-a-rival mechanic
+validated earlier (Parts 6, 7, and 9), not an addition alongside it, those
+specific numbers no longer apply, this replaced them.
 
 **Real Estate and Gold both react to the same scenario system, not just
 Company income.** Two direct answers to "why should Company income be the
 only thing that isn't a flat guaranteed number":
 - **Real Estate** feels that round's Property delta too, at half strength
-  (a `↑↑` on Property nudges Real Estate income by +4%, not +8%). Real
-  Estate stays the calmer, defense-weighted asset on purpose, it's not
-  meant to be Company's twin, but it isn't fully insulated from the world
-  either.
+  (whatever Property actually rolled that round, halved, not a separately
+  rolled number). Real Estate stays the calmer, defense-weighted asset on
+  purpose, it's not meant to be Company's twin, but it isn't fully
+  insulated from the world either.
 - **Gold** is a new, separate asset class: a flight-to-safety hedge, not
-  another Industry a company can belong to. It grows a low, flat 2%/round
-  in ordinary years (a value-preserver, not a growth engine, real gold
-  doesn't pay a dividend), and gets a real kicker specifically during
-  crisis-flavored scenarios, war, recession, a financial-system shock,
-  the "Gold" column above, while genuinely upbeat scenarios (a trade deal,
-  a consumer-confidence high) pull it slightly negative, money chasing
-  growth assets instead. That's the actual point of holding it: it does
+  another Industry a company can belong to. It grows around a low ~2%/round
+  in ordinary years, itself rolled fresh each round rather than sitting at
+  an exact 2% every time (a value-preserver, not a growth engine, real
+  gold doesn't pay a dividend, and drifts a little on its own even with no
+  news), and gets a real kicker specifically during crisis-flavored
+  scenarios, war, recession, a financial-system shock, the "Gold" column
+  above, while genuinely upbeat scenarios (a trade deal, a consumer-
+  confidence high) pull it slightly negative, money chasing growth assets
+  instead. That's the actual point of holding it: it does
   relatively better exactly when Company income and the Market are doing
   worse, the same real-world logic that makes gold a hedge and not just
   an eleventh industry. Simulation-tested balance-neutral, see
@@ -338,13 +348,20 @@ solve the game by memorizing a table of guaranteed percentages.
 
 **Income and growth, from safest to riskiest:**
 
-| Source | Base rate | Real risk? |
+Only Bank deposit interest is a genuinely fixed number, on purpose: it's
+the one deliberately risk-free option, the same way a real bank account
+doesn't pay a variable rate. Everywhere else below, the tier (how strong,
+which direction) is fixed by the scenario, but the exact size is rolled
+fresh from a range every round, never the same number twice, see Section
+5A's tier ranges for the actual `(min, max)` on each.
+
+| Source | Rate | Real risk? |
 |---|---|---|
-| Bank deposit interest | 4%/round, flat | None. The explicit safe floor, deliberately below every option below it. |
-| Real Estate income | 5%/round, +/- half the Property scenario delta (so +/-1% to +/-4% on top) | Low. Stays the calm, defense-weighted asset on purpose. |
-| Gold | 2%/round base, +/-2 to +/-8% during named crisis/boom scenarios (see Section 5A's table) | Low, and countercyclical, its whole job is doing better exactly when everything else is doing worse. |
-| Company income | 10%/round, +/- the full scenario delta for the player's own Industry (+/-4% or +/-8%, 0 if unaffected that round) | Real. Floor is 2%/round (10% base minus an 8% hit) in this scenario set, but that's a property of the current table, not a rule, see the skew note above. |
-| Market (an Industry position, long or short) | No base rate. Pure scenario delta for that Industry, long gains what it gains, short is the exact mirror | Real, full exposure, no floor. Without Industries on, falls back to a flat 8%/round (`STOCK_INCOME_RATE_FALLBACK`), the old, pre-redesign number, kept only so the mechanic still functions with Industries off. |
+| Bank deposit interest | 4%/round, flat, the one genuinely fixed number in this table | None. The explicit safe floor, deliberately below every option below it. |
+| Real Estate income | ~5%/round base, +/- half of whatever that round's Property roll came out to | Low. Stays the calm, defense-weighted asset on purpose. |
+| Gold | rolled each round from a low band centered near 2% even in ordinary years, plus a real kicker rolled from a wider range during named crisis/boom scenarios (see Section 5A) | Low, and countercyclical, its whole job is doing better exactly when everything else is doing worse. |
+| Company income | 10%/round base, +/- a rolled value for the player's own Industry (a moderate tier rolls 1-8%, a strong one rolls 4-20%, 0 if unaffected that round) | Real, and occasionally severe: a strong negative roll can push a round's income negative, not just lower. |
+| Market (an Industry position, long or short) | No base rate. The rolled scenario delta for that Industry, long gains what it gains, short is the exact mirror | Real, full exposure, no floor. Without Industries on, falls back to a flat 8%/round (`STOCK_INCOME_RATE_FALLBACK`), the old, pre-redesign number, kept only so the mechanic still functions with Industries off. |
 | Joint Venture | Same as a Market position in its assigned Industry, no separate rate. Without Industries on, falls back to a flat 12%/round (`JV_GROWTH`) | Real, identical to a solo Market bet in that Industry, plus betrayal risk on top (Section 7). |
 
 **Interest and borrowing costs:**

@@ -7,7 +7,7 @@ belongs in app/services.
 
 from fastapi import FastAPI
 
-app = FastAPI(title="Consortium API")
+app = FastAPI(title="Hostile Ledger API")
 
 
 @app.get("/health")

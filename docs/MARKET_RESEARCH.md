@@ -199,7 +199,7 @@ without giving cooperation any mechanical necessity. Findings, by game:
   bet) is a plausible design for the deferred rumor/misinformation system,
   worth prototyping after the MVP loop is proven.
 
-**Implication:** the redesigned GDD (see GDD.md v3, "Consortium") borrows
+**Implication:** the redesigned GDD (see GDD.md v3, "Hostile Ledger") borrows
 the *mechanisms*, not the themes, from these - Syndicate Moves (Diplomacy's
 support math), Joint Ventures (EVE's drainable treasuries), Hidden Raider
 roles (Secret Hitler's minority win-condition), Declarations & Audits

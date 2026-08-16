@@ -1,4 +1,4 @@
-# Consortium (working title)
+# Hostile Ledger
 
 A web-based financial strategy game for a small group of friends (up to 7)
 playing together in one sitting - start to finish in under an hour, like a
