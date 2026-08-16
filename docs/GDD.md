@@ -178,15 +178,17 @@ part of the game.
    actually investing. Built directly to answer why idle cash should have
    any legitimate use besides eroding to inflation (step 7 above) or being
    spent outright - simulation-tested, see BALANCE_TESTING.md Part 12.
-5. **Joint Ventures** - team up with an ally, pool money for a return
-   neither gets solo, but they can drain it early and keep the majority
-   (65/35 split, simulation-tested - see BALANCE_TESTING.md Part 1). The
-   stake scales with what both partners actually have (30% of whichever
-   holds less Cash, not a fixed amount) and its growth carries real,
-   bidirectional market risk on top of the base rate, tied to that round's
-   Industries scenario when that system is active, so a JV can genuinely
-   lose money, not just a guaranteed return everyone should always take
-   (see Section 7's full walkthrough, and BALANCE_TESTING.md Part 12).
+5. **Joint Ventures** - team up with an ally on a shared position in one
+   Industry, pool money for a return neither gets solo, but either partner
+   can drain it early and keep the majority (65/35 split, simulation-
+   tested - see BALANCE_TESTING.md Part 1). Its growth is exactly that
+   Industry's scenario delta, the same number moving Company income and a
+   solo Market bet, no separate guaranteed rate and no extra risk
+   multiplier stacked on top, so a JV's expected return is identical to
+   investing in that Industry alone. What forming one actually buys you is
+   scale (pool more than either partner could bet solo) and real
+   betrayal risk (see Section 7's full walkthrough, worked numeric
+   example, and BALANCE_TESTING.md Part 12).
    Reputation has real teeth: two proven betrayals and you lose access to
    easy income and get worse terms on anything you still manage to form.
    **Two allies at a time, max.** Not a limit anyone had actually decided
@@ -200,6 +202,15 @@ part of the game.
    might want to ally, is likely a bigger risk than this bot test can show.
    2 is the validated, recommended cap. See BALANCE_TESTING.md Part 8.
 6. **Takeovers** - go after a rival's whole company (see Section 6).
+7. **Gold** - a flight-to-safety hedge, not tied to any one Industry. Low
+   and flat in ordinary years, a real gain specifically during crisis
+   scenarios (war, recession, a financial shock), a mild pullback during
+   broad optimism (see Section 5A). Not a growth strategy, a defensive one:
+   simulated as something only cautious, diversifying players bother with,
+   everyone else is chasing bigger returns elsewhere and has no reason to.
+   **Not yet part of the liquidation cascade** (Section 5.4's cash-then-
+   Company-then-Real-Estate order doesn't draw on Gold yet if someone owes
+   more than that covers), a known scope gap, not a design decision.
 
 ## 5A. Industries and Market Events
 
@@ -241,38 +252,57 @@ income-rate comparison could.
 A first working set of scenarios (not exhaustive, more can be added
 without touching the mechanic itself):
 
-| Scenario | Industries affected |
-|---|---|
-| "A major regional conflict breaks out" | Energy ↑↑, Manufacturing ↑, Pharma ↑, Agriculture ↓, Consumer Retail ↓ |
-| "A breakthrough vaccine is announced" | Pharma ↑↑, Healthcare ↑, Media & Entertainment ↑ |
-| "Interest rates are cut sharply" | Property ↑↑, Consumer Retail ↑, Technology ↑ |
-| "A major tech company reports a data breach" | Technology ↓↓, Financial Services ↓ |
-| "A bumper harvest season" | Agriculture ↑, Consumer Retail ↑ |
-| "A severe drought hits key farming regions" | Agriculture ↓↓, Consumer Retail ↓ |
-| "A new blockbuster streaming platform launches" | Media & Entertainment ↑↑, Technology ↑ |
-| "Oil prices crash on oversupply" | Energy ↓↓, Manufacturing ↑, Consumer Retail ↑, Agriculture ↑ |
-| "A recession is officially declared" | Consumer Retail ↓↓, Financial Services ↓↓, Technology ↓, Property ↓ |
-| "A landmark trade deal is signed" | Manufacturing ↑↑, Agriculture ↑, Technology ↑, Consumer Retail ↑ |
-| "Consumer confidence hits a record high" | Consumer Retail ↑↑, Media & Entertainment ↑, Property ↑ |
-| "A cybersecurity crisis hits financial institutions" | Financial Services ↓↓, Technology ↓ |
-| "Housing demand surges in major cities" | Property ↑↑, Financial Services ↑ |
-| "Global supply chains face major disruption" | Manufacturing ↓↓, Consumer Retail ↓, Technology ↓, Agriculture ↓ |
-| "A wave of mergers sweeps the healthcare industry" | Healthcare ↑, Pharma ↑, Financial Services ↑ |
-| "Renewable energy investment surges" | Energy ↑, Manufacturing ↑, Technology ↑ |
-| "A major retailer files for bankruptcy" | Consumer Retail ↓↓, Property ↓, Financial Services ↓ |
-| "Streaming and gaming demand hits an all-time high" | Media & Entertainment ↑↑, Technology ↑ |
-| "A wave of automation disrupts manufacturing jobs" | Manufacturing ↑, Technology ↑, Consumer Retail ↓ |
-| "A quiet, uneventful year in the markets" | everything flat |
+| Scenario | Industries affected | Gold |
+|---|---|---|
+| "A major regional conflict breaks out" | Energy ↑↑, Manufacturing ↑, Pharma ↑, Agriculture ↓, Consumer Retail ↓ | ↑ |
+| "A breakthrough vaccine is announced" | Pharma ↑↑, Healthcare ↑, Media & Entertainment ↑ | - |
+| "Interest rates are cut sharply" | Property ↑↑, Consumer Retail ↑, Technology ↑ | ↑ |
+| "A major tech company reports a data breach" | Technology ↓↓, Financial Services ↓ | - |
+| "A bumper harvest season" | Agriculture ↑, Consumer Retail ↑ | - |
+| "A severe drought hits key farming regions" | Agriculture ↓↓, Consumer Retail ↓ | slight ↑ |
+| "A new blockbuster streaming platform launches" | Media & Entertainment ↑↑, Technology ↑ | - |
+| "Oil prices crash on oversupply" | Energy ↓↓, Manufacturing ↑, Consumer Retail ↑, Agriculture ↑ | slight ↑ |
+| "A recession is officially declared" | Consumer Retail ↓↓, Financial Services ↓↓, Technology ↓, Property ↓ | ↑↑ |
+| "A landmark trade deal is signed" | Manufacturing ↑↑, Agriculture ↑, Technology ↑, Consumer Retail ↑ | slight ↓ |
+| "Consumer confidence hits a record high" | Consumer Retail ↑↑, Media & Entertainment ↑, Property ↑ | slight ↓ |
+| "A cybersecurity crisis hits financial institutions" | Financial Services ↓↓, Technology ↓ | ↑ |
+| "Housing demand surges in major cities" | Property ↑↑, Financial Services ↑ | - |
+| "Global supply chains face major disruption" | Manufacturing ↓↓, Consumer Retail ↓, Technology ↓, Agriculture ↓ | ↑ |
+| "A wave of mergers sweeps the healthcare industry" | Healthcare ↑, Pharma ↑, Financial Services ↑ | - |
+| "Renewable energy investment surges" | Energy ↑, Manufacturing ↑, Technology ↑ | - |
+| "A major retailer files for bankruptcy" | Consumer Retail ↓↓, Property ↓, Financial Services ↓ | slight ↑ |
+| "Streaming and gaming demand hits an all-time high" | Media & Entertainment ↑↑, Technology ↑ | - |
+| "A wave of automation disrupts manufacturing jobs" | Manufacturing ↑, Technology ↑, Consumer Retail ↓ | - |
+| "A quiet, uneventful year in the markets" | everything flat | - |
 
-`↑↑` / `↓↓` a strong move, `↑` / `↓` a moderate one, unlisted industries
-stay flat that round. Exact percentages not yet set, needs a balance pass
-once this is built (see below).
-
-**Built and simulation-tested, see `BALANCE_TESTING.md` Part 12.** This
-was a genuine pivot away from the long/short-on-a-rival mechanic validated
+`↑↑` / `↓↓` a strong move (+/-8%), `↑` / `↓` a moderate one (+/-4%),
+"slight" a small one (+/-2%), unlisted industries stay flat that round.
+Real Estate reacts to the Property row too, at half strength (see below).
+Built and simulation-tested, see `BALANCE_TESTING.md` Part 12, this was a
+genuine pivot away from the long/short-on-a-rival mechanic validated
 earlier (Parts 6, 7, and 9), not an addition alongside it, those specific
-numbers no longer apply, this replaced them. `↑↑`/`↓↓` are +/-8% to that
-round's Company income for an affected industry, `↑`/`↓` are +/-4%.
+numbers no longer apply, this replaced them.
+
+**Real Estate and Gold both react to the same scenario system, not just
+Company income.** Two direct answers to "why should Company income be the
+only thing that isn't a flat guaranteed number":
+- **Real Estate** feels that round's Property delta too, at half strength
+  (a `↑↑` on Property nudges Real Estate income by +4%, not +8%). Real
+  Estate stays the calmer, defense-weighted asset on purpose, it's not
+  meant to be Company's twin, but it isn't fully insulated from the world
+  either.
+- **Gold** is a new, separate asset class: a flight-to-safety hedge, not
+  another Industry a company can belong to. It grows a low, flat 2%/round
+  in ordinary years (a value-preserver, not a growth engine, real gold
+  doesn't pay a dividend), and gets a real kicker specifically during
+  crisis-flavored scenarios, war, recession, a financial-system shock,
+  the "Gold" column above, while genuinely upbeat scenarios (a trade deal,
+  a consumer-confidence high) pull it slightly negative, money chasing
+  growth assets instead. That's the actual point of holding it: it does
+  relatively better exactly when Company income and the Market are doing
+  worse, the same real-world logic that makes gold a hedge and not just
+  an eleventh industry. Simulation-tested balance-neutral, see
+  BALANCE_TESTING.md Part 12.
 
 Directly answers the exact complaint that prompted it: a player who always
 reinvests 90% of new cash into Company for the whole Building Phase (the
@@ -296,6 +326,59 @@ average over many rounds. This mirrors real economic history, expansions
 outnumber contractions, and isn't treated as a bug, but a future balance
 pass could tighten it if games start trending too far upward across many
 rounds.
+
+## 5B. Every income and cost source, exact rates
+
+Asked directly: every rate in the game, in one place, instead of scattered
+across Section 5's prose. **Not flat where it looks flat.** The general
+rule this whole redesign follows: the *safer* an option is, the *lower and
+flatter* its rate; anything that can actually lose money gets its rate
+tied to the same scenario system instead of a fixed number, so nobody can
+solve the game by memorizing a table of guaranteed percentages.
+
+**Income and growth, from safest to riskiest:**
+
+| Source | Base rate | Real risk? |
+|---|---|---|
+| Bank deposit interest | 4%/round, flat | None. The explicit safe floor, deliberately below every option below it. |
+| Real Estate income | 5%/round, +/- half the Property scenario delta (so +/-1% to +/-4% on top) | Low. Stays the calm, defense-weighted asset on purpose. |
+| Gold | 2%/round base, +/-2 to +/-8% during named crisis/boom scenarios (see Section 5A's table) | Low, and countercyclical, its whole job is doing better exactly when everything else is doing worse. |
+| Company income | 10%/round, +/- the full scenario delta for the player's own Industry (+/-4% or +/-8%, 0 if unaffected that round) | Real. Floor is 2%/round (10% base minus an 8% hit) in this scenario set, but that's a property of the current table, not a rule, see the skew note above. |
+| Market (an Industry position, long or short) | No base rate. Pure scenario delta for that Industry, long gains what it gains, short is the exact mirror | Real, full exposure, no floor. Without Industries on, falls back to a flat 8%/round (`STOCK_INCOME_RATE_FALLBACK`), the old, pre-redesign number, kept only so the mechanic still functions with Industries off. |
+| Joint Venture | Same as a Market position in its assigned Industry, no separate rate. Without Industries on, falls back to a flat 12%/round (`JV_GROWTH`) | Real, identical to a solo Market bet in that Industry, plus betrayal risk on top (Section 7). |
+
+**Interest and borrowing costs:**
+
+| Source | Rate | Notes |
+|---|---|---|
+| Bank loan | 8% base + 35% x your leverage ratio (debt / total wealth) | Rises the more overleveraged you already are, not flat, see Section 5 item 4. |
+| Peer-to-peer loan | 20%/round, flat | Well above the Bank's typical 8-20%, the real premium for unsecured credit from another player, not an institution. |
+
+**Taxes (all currently experimental, feature-flagged, not in the base
+ruleset yet, see BALANCE_TESTING.md Parts 6, 9, 12):**
+
+| Tax | Structure |
+|---|---|
+| Income tax | Marginal slabs on total profit earned that round (every source combined): 0% up to 5, 5% from 5-15, 10% from 15-30, 15% from 30-50, 20% above 50. Modeled on India's actual income tax structure. |
+| Net worth tax | Marginal slabs on total Power: 0% up to 100, 5% from 100-200, 10% from 200-300, 20% from 300-400, 30% above 400. |
+| Idle cash erosion | 3%/round on Cash held above 10 (a protected working-cash floor), representing inflation on money that isn't invested anywhere. Deposited cash (above) is exempt, it isn't idle. |
+
+**Transaction friction:**
+
+| Action | Cost |
+|---|---|
+| Buying Real Estate | 97 cents on the dollar, a 3% purchase cost |
+| Liquidating Real Estate | 85 cents on the dollar, a 15% haircut for selling in a hurry |
+| Bankruptcy | Creditors seize 85% of everything (Cash, Company, Real Estate, Gold, Market and JV positions), the remaining 15% and your debt are both discharged |
+
+**Combat percentages** (Section 6):
+
+| Mechanic | Rate |
+|---|---|
+| Takeover / counter-attack capture | 25% of the target's *total* wealth, cash first, then Company, then Real Estate |
+| Failed attack penalty | Attacker loses 50% of what they staked, split evenly between the defender and the Bank |
+| JV drain split | 65/35 to the drainer if only one side drains, 40/40 (20% lost to friction) if both drain the same round, 50/50 if neither drains |
+| "Gang up on the leader" trigger | Any player whose total Power exceeds 1.05x the second-place player's becomes a valid counter-attack target |
 
 ## 6. Combat: attacking and defending
 
@@ -419,48 +502,70 @@ Defense Pacts work completely differently here:
   active (Section 6), a temporary borrowed weight in one formula, not a
   transfer of anything. When the pact ends, that weight just stops being
   added. No asset ever changed hands, so there's nothing to distribute.
-- **A Joint Venture is a repeating one-round transaction, not a
-  persistent, multi-round pot.** Nothing sits untouched waiting to be
-  drained. Each round both partners still hold the alliance, both commit a
-  fresh stake out of their own Cash, that round's pot grows or shrinks
-  immediately, and it's split and paid straight back into each partner's
-  *own* Cash before the round ends. The betrayal decision happens fresh
-  every single round the alliance is active, not once at some deferred
-  resolution point.
-- **The stake scales with wealth.** Each partner puts in 30% of whichever
-  of the two has less Cash that round (floored at 5, the old fixed amount),
-  so a JV stays worth forming as both partners get richer instead of
-  shrinking into a rounding error, updated directly in response to that
-  being too trivial a return once the game's numbers grew
-  (BALANCE_TESTING.md Part 12).
+- **A Joint Venture is a shared position in one Industry, not a separate
+  bet with its own guaranteed rate.** On formation the two partners pick
+  (or, for these bots, get randomly assigned) one Industry for the
+  venture, and the pot moves with that Industry's real scenario delta
+  every round, exactly the same number that moves a solo Market position
+  or a Company in that Industry. If Healthcare is down 8% that round, a
+  Healthcare JV is down 8%. Full stop, no separate multiplier, no
+  guaranteed floor.
+- **That means a JV's expected return is identical to just investing in
+  that Industry solo.** The entire reason to form one instead is what a
+  solo position can't offer: two partners can pool more money into one
+  Industry bet than either could alone, and either one can drain the
+  shared pot early and keep the majority, a real trust problem a solo
+  bet never has.
+- **The pot persists across rounds, it doesn't reset every round.** It's
+  seeded once with both partners' opening stake, and grows or shrinks in
+  place each round after that with the Industry's movement. Either
+  partner can add another equal top-up on top in a later round if both
+  can spare it, compounding the position further; if they can't spare it,
+  the pot just keeps existing and moving on whatever's already in it.
+  Nothing pays out, and nobody has to decide anything, until someone
+  actually drains it.
 
-**The backstab process, step by step** (Section 5's 65/35 split, in full):
-1. Two players agree to a JV (Section 5). It stays active every round from
-   then on, until one side ends it.
-2. Each round it's active, both partners commit a fresh stake, 30% of
-   whichever partner has less Cash that round, floored at 5, taken
-   directly from their own Cash.
-3. That round's combined pot grows or shrinks by a base 12%, plus real
-   market risk: tied to that round's Industries scenario if that system is
-   on (amplified, since a JV concentrates money in one bet, riskier than a
-   diversified core business), or a standalone random swing if not. This
-   can lose money, not just grow more slowly, a JV is a real bet, not a
-   guaranteed return (BALANCE_TESTING.md Part 12).
-4. Same round, both partners privately decide, same simultaneous-secret-move
-   timing as everything else (Section 4's step 2): keep holding, or drain.
-5. **If one drains while the other holds**: the drainer's Cash goes up by
-   65% of that round's pot; the partner who kept holding gets the
-   remaining 35%, added to their own Cash. That's the whole betrayal, a
-   single round's resolution.
+**The backstab process, step by step, with real numbers** (Section 5's
+65/35 split, in full):
+1. Two players agree to a JV and it's assigned an Industry, say
+   Healthcare. Each puts in 10, the pot opens at **20**.
+2. Round 2: nobody drains, both can afford another 10, they top up.
+   Healthcare has a flat year (delta 0%). Pot: (20 + 20) x 1.00 = **40**.
+3. Round 3: Healthcare gets a strong scenario, "A breakthrough vaccine is
+   announced" (Healthcare +4%). Neither tops up this round (one partner's
+   short on cash). Pot: 40 x 1.04 = **41.6**.
+4. Round 4: another strong Healthcare scenario lands (+4% again). Pot:
+   41.6 x 1.04 = **43.3**. **This is the moment a backstab actually pays**:
+   one partner privately decides to drain instead of letting it ride.
+   They get 65% of 43.3 = **28.1** straight into their own Cash. The
+   partner who didn't drain gets the remaining 35% = **15.2**. Compare
+   that 15.2 to what an even split would have paid (21.65 each): the
+   drainer walked away with 28.1 for two rounds of 10 each (20
+   contributed), a real, immediate profit on top of what an honest split
+   would have paid them, at the cost of the partnership and a mark on
+   their reputation.
+5. **Why would someone actually do this, concretely**: the profit motive
+   is exactly that 28.1-vs-21.65 gap, real money, right now, no waiting.
+   It's most tempting after a run of good scenarios has grown the pot
+   large (a bigger pot means a bigger absolute gap between 65% and an
+   honest 50%), and most tempting for a player who needs cash *this*
+   round, to fund an attack, cover a tax bill, or shore up defense before
+   Conflict Phase opens, over a player who's comfortable letting the
+   position keep compounding. It is never forced, and a Turtle-style
+   cautious player who values the ongoing relationship over one big
+   payday has every reason to never drain at all.
 6. **If both drain the same round**: a smaller, even split (40% each)
-   instead, neither one gets the full drainer's cut.
-7. **If neither drains**: even 50/50 split, and the JV simply continues
-   into next round if the alliance is still active.
-8. A drain is recorded (`drain_count`). Two proven drains triggers the
-   reputation tax: no more easy idle income, and worse growth rates on any
-   JV that player still manages to form (Section 5, BALANCE_TESTING.md
-   Part 1). A drain doesn't have to end the alliance itself, though the
-   partner drained on has every reason to walk away afterward.
+   instead, neither one gets the full drainer's cut, the two betrayals
+   partly cancel each other out.
+7. **If neither drains**: nothing pays out, the pot simply carries into
+   next round, still moving with Healthcare, still growable with another
+   top-up.
+8. A drain is recorded (`drain_count`) and ends that JV. Two proven drains
+   (across any of a player's JVs, not just one) triggers the reputation
+   tax: no more easy idle income, and worse growth rates on any JV that
+   player still manages to form (Section 5, BALANCE_TESTING.md Part 1).
+   The partner drained on has every reason to walk away and not reform a
+   JV with that player again, nothing in the rules forces them to.
 
 Beyond Joint Ventures (which are financial), you can form a **Defense
 Pact**: a promise that if your partner is attacked, you help defend them.
@@ -600,26 +705,55 @@ your final-round vote is actually for, if the top two players finish
 within a hair of each other, whichever one more Board Observers were
 backing wins the tie.
 
-**Co-Founder: an even better fix, added after review pushed back.**
+**Co-Founder: an even better fix, added after review pushed back, then
+rebuilt again once the reward structure was called out as backwards.**
 Picking a name to root for isn't actually an action, correctly called out
 directly: "still they just sit in the game, it's not like they can do
 anything." Fair. **Co-Founder** replaces backing as the preferred outcome:
 a broke player can be recruited by a living player to actively co-run
 their company. As co-founder, every remaining round, they redirect a real
-slice of the host's fresh income toward Real Estate (a genuine, repeated,
-risk-management decision, not a one-time label), and in exchange the host
-gets a modest income bonus (+5% Company income) for having them aboard, a
-real reason to want a co-founder, not a favor with nothing in it for
-either side. One co-founder per host. Backing is now the fallback only for
-whoever isn't recruited.
-Simulation-validated: `AvgDeadRoundsPerPlayer` still drops to 0 at every
-player count tested. Host recruitment is deliberately **random among
-eligible hosts, not "richest available"**: an early version preferring the
-richest host quietly fed the income bonus to whoever was already leading,
-cutting Socialite's win rate from 85.9% to 75.5%, the same
-snowball-reinforcing pattern this whole project kept finding elsewhere.
-With random host selection, the cost is much smaller and honestly
-reportable: 85.9% → 83.2%.
+slice of the host's cash toward Real Estate (a genuine, repeated,
+risk-management decision, not a one-time label). One co-founder per host.
+Backing is now the fallback only for whoever isn't recruited.
+
+**The first version's reward was backwards, and got called out
+directly: "why extra income, then everyone would want someone to die and
+take them on the team."** Right. Paying the *host* a flat income bonus for
+recruiting a broke player is profiting directly from someone else's loss,
+exactly the wrong incentive, and it gave the co-founder nothing of their
+own to actually care about beyond "something to do." Rebuilt around a
+real, tracked stake instead of a bonus:
+- **The host's income bonus is gone.** Their only reason to take on a
+  co-founder now is the real, ongoing Real Estate risk-management help,
+  paid for with real equity dilution, not a free bonus.
+- **The co-founder gets a real, growing equity stake** (7% of the host's
+  Company, marked to its current value every single round, not a static
+  number) that visibly counts toward their own standing in the game. This
+  is the actual hook: a genuine number they're watching move, tied to a
+  real decision every round, "is my host playing well, should I keep
+  steering them toward safety."
+- **A real comeback, not a permanent sidelined role.** Once the host can
+  comfortably afford it, they can buy the co-founder out entirely, a real
+  cash payout that frees the co-founder to rebuild independently or be
+  recruited elsewhere. Simulated: this happens in **48% of games**, close
+  to a coin flip, real and worth hoping for without being guaranteed
+  (BALANCE_TESTING.md Part 12).
+- **A golden parachute if the host gets taken over instead.** The
+  co-founder gets 20% of whatever an attacker captures, paid straight to
+  their own cash, and is freed to be recruited again. Direct answer to
+  "would I even want to attach myself to someone who might get raided":
+  yes, because even that downside pays you something real, unlike an
+  organic bankruptcy, where there's no acquirer to pay a severance from
+  and the equity is just gone. Fires in **23.6% of games**.
+
+Simulation-validated: `AvgDeadRoundsPerPlayer` still drops to effectively
+0 (0.030) at every player count tested. Host recruitment is deliberately
+**random among eligible hosts, not "richest available"**: an early version
+preferring the richest host quietly fed the (now-removed) income bonus to
+whoever was already leading, cutting Socialite's win rate from 85.9% to
+75.5%, the same snowball-reinforcing pattern this whole project kept
+finding elsewhere. With random host selection and the rebuilt equity
+structure, full-game balance stays clean: 84.2% → 83.2%.
 
 ### 8.5 The Final Round
 Deliberately different from the rest of the game. Game theory says rational
@@ -648,11 +782,15 @@ for a group of friends playing together.
   archetype (Diversifier) wins for the first time in this project's
   testing history.
 - ~~Joint Ventures were a fixed 5-cash, guaranteed ~12%, no real risk~~
-  **resolved**: the stake now scales with both partners' wealth and the
-  pot's growth carries genuine bidirectional market risk (tied to
-  Industries when active, a standalone swing otherwise), a JV can now lose
-  money, not just grow more slowly. See Section 5 item 5, Section 7's
-  walkthrough, and BALANCE_TESTING.md Part 12.
+  **resolved**: a JV is now a shared position in one Industry, its growth
+  is exactly that Industry's real scenario delta, the same number moving
+  Company income, no separate guaranteed rate, no extra risk multiplier.
+  A JV can lose money now, expected return is identical to investing in
+  that Industry solo, the only edge it offers is pooling more capital
+  than either partner could alone, at the cost of real betrayal risk. The
+  pot also persists and compounds across rounds instead of resolving
+  every single round. See Section 5 item 5, Section 7's full worked
+  numeric example, and BALANCE_TESTING.md Part 12.
 - ~~Idle cash erosion had no legitimate escape hatch besides spending
   everything~~ **resolved**: the Bank now pays interest on deposits
   (Section 5 item 4), a safe, modest, taxed return that beats erosion

@@ -1148,54 +1148,58 @@ unpredictable spread the player doesn't control by playing "correctly."
 The formula still exists as a starting heuristic, it no longer has a single
 knowable answer.
 
-## Joint Ventures: scalable stake, real bidirectional risk
-`resolve_jvs_human` no longer takes a fixed 5 cash from each side. The
-stake is now `min(both partners' cash) * JV_CONTRIBUTION_RATE` (30%,
-floored at the old 5), so a JV stays meaningful as both partners get
-richer instead of becoming a rounding error. The pot's growth is no longer
-a flat `JV_GROWTH` (12%): it's `JV_GROWTH + risk_delta`, where
-`risk_delta` comes from the same scenario system that moves Company
-income, averaged across both partners' industries and amplified 2.5x
-(`JV_RISK_AMPLIFIER`), the real-world logic being that a joint venture
-concentrates money in one bet, so it should swing harder than a
-diversified core business. Without Industries on, a standalone random
-swing (`JV_STANDALONE_RISK_RANGE`, +/-15%) keeps the risk real either way,
-so JVs never revert to a guaranteed return even in a game running without
-the Industries system.
+## Joint Ventures: rebuilt twice in the same session, the second version is final
+The first fix (stake scaled to 30% of the poorer partner's cash, pot
+growth an amplified 2.5x blend of both partners' industry deltas) was
+correctly rejected: it was needless complexity dressed up as "real risk,"
+and it didn't match the actual mental model, a JV should just BE a shared
+Industry bet, not a bet on a synthetic blended number nobody at the table
+could reconstruct in their head. Rebuilt to match that directly:
 
-Measured growth rate actually paid out, sampled directly from live games:
+- **The JV is assigned one Industry on formation** (a real player choice
+  in the actual game, random for these bots), and its pot moves by
+  **exactly** that Industry's scenario delta every round, the identical
+  number moving Company income and a solo Market position in that
+  Industry. No blending, no amplifier, no separate guaranteed rate. If
+  Healthcare is down 8%, a Healthcare JV is down 8%, full stop, confirmed
+  directly by logging the pot's growth against the drawn scenario's raw
+  delta across 300 games: every observed value matched exactly (Manufacturing
+  +8% scenario -> JV +8%, Financial Services -4% scenario -> JV -4%, etc,
+  BALANCE_TESTING.md verification run, not reproduced as a table here since
+  it's a tautology once read directly off the code).
+- **The stake is a flat, fixed unit (10 each on formation), not a wealth
+  percentage.** The wealth-scaling version was also rejected: real people
+  don't think in "30% of my partner's cash," they think in a concrete
+  number they can choose to repeat or grow.
+- **The pot persists and compounds across rounds instead of resolving
+  every single round.** Seeded once, it keeps moving with its Industry
+  every round it isn't drained, and either partner can add another equal
+  10-unit top-up in any round both can spare it, a real, repeated
+  "keep investing or not" decision, not a one-shot side bet.
+- **The profit motive behind an actual backstab is now concrete and
+  worked with real numbers** in GDD.md Section 7: a pot that's compounded
+  up to 43.3 after two strong scenario rounds pays a drainer 28.1 (65%)
+  versus 21.65 if they'd waited for an honest split, that 6.45 gap, paid
+  immediately, in cash, right now, is the entire, legible reason to
+  betray a partner, most tempting exactly when the pot has grown large
+  and the drainer needs cash urgently.
 
-| Configuration | Min | Max | Mean | % of JVs that lost money |
-|---|---|---|---|---|
-| Standalone risk (Industries off) | -3.0% | +26.8% | 11.5% | 7.7% |
-| Industry-linked risk (Industries on) | -8.0% | +32.0% | 16.9% | 0.4% |
-
-Both ranges now cross zero, a JV can genuinely shrink, not just grow more
-slowly, fixing the "everyone does this and gets a free 12%" complaint.
-Industry-linked risk loses money far less often than standalone risk
-because it requires both partners to be concentrated in industries the
-same scenario hits the same direction, partners in different industries
-are naturally hedged against each other, which is realistic (diversifying
-your JV partner's industry exposure is a real risk-reduction strategy) but
-worth flagging: the scenario table itself is not symmetric (35 positive
-deltas summing to +1.72 vs 21 negative deltas summing to -1.16 across the
-20 scenarios), which is why the industry-linked mean (16.9%) runs above
-the intended-neutral 12% baseline. This mirrors real economic history
-(expansions outnumber contractions) and already existed for Company income
-before this Part, it isn't new here, just more visible once JV risk is
-amplified on top of it. Not treated as a bug. If a future pass wants JVs
-closer to break-even on average, tightening the scenario table's positive
-skew is the lever, not the JV multiplier.
+Since a JV's return is now, by construction, identical to a solo Market
+bet in the same Industry, there's no separate "does this lose money"
+table to report: it loses money exactly as often, and by exactly as much,
+as that Industry does, which is already covered by the Building Phase
+variance finding above.
 
 Full-game win distribution, mistakes + raid fatigue harness, 1500 trials:
 
 | Configuration | Top archetype | Gap |
 |---|---|---|
-| Baseline (JV redesign active, everything else off) | Socialite 84.2% | 10.9% |
+| Baseline (JV v2 active, everything else off) | Socialite 81.0% | 10.2% |
 
 Consistent with every other baseline reading in this file (85.9% in Part
-10, 84.2% here, seed-to-seed noise, not drift), confirming the JV redesign
-alone doesn't disturb the validated anti-snowball margin.
+10, 81-84% here across both JV iterations, seed-to-seed noise, not drift),
+confirming the redesign doesn't disturb the validated anti-snowball
+margin.
 
 ## Idle cash erosion, answered directly
 The mechanic only ever touched `p.cash`, never Company, Real Estate, or
@@ -1246,33 +1250,140 @@ makes idle cash safer or more productive helps whichever archetype already
 sits on the most of it. Not large enough here to break the margin, worth
 watching if a future mechanic pushes the same direction again.
 
+## Real Estate and Gold: the same scenario system, at different strengths
+Raised directly: if Company income and JVs both read the scenario text,
+why should Real Estate stay completely flat, and why not have a
+crisis-hedge asset like real portfolios do? Both built, both reuse the
+exact same `SCENARIOS` deltas already in place rather than inventing a
+second random system:
+
+- **Real Estate** now feels the round's "Property" delta too, at half
+  strength (`REAL_ESTATE_SCENARIO_DAMPENER = 0.5`): a `++`/`--` Property
+  scenario moves Real Estate income by +/-4% instead of the +/-8% Company
+  gets, deliberately smaller so it stays the calmer, defense-weighted
+  asset rather than becoming a second copy of Company income.
+- **Gold** is a new asset (`GOLD_ENABLED`), not tied to any Industry a
+  company can belong to. It grows a flat 2%/round in ordinary years, and
+  gets a real, mostly-positive kicker specifically on crisis-flavored
+  scenarios (war, recession, a financial-system shock) while genuinely
+  upbeat scenarios pull it slightly negative, a real countercyclical
+  hedge, not an eleventh industry with its own SCENARIOS entries added
+  directly (see GDD.md Section 5A's table). Only Turtle and Diversifier
+  bother hedging into it (`apply_gold_hedge`), the archetypes already
+  playing cautious/diversified, everyone else has no behavioral reason to
+  redirect cash into a low-yield defensive asset.
+
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Baseline | Socialite 81.0% | 10.2% |
+| + Gold alone | Socialite 81.0% | 10.2% |
+| + Industries + Gold together | Socialite 76.7% | 7.3% |
+
+Gold alone produces literally identical numbers to baseline: Turtle wins
+0% and Diversifier wins under 1% of games in this bot pod regardless of
+Gold, so a mechanic only they use can't move the top-line numbers. That's
+an honest limitation of the bot model (same shape as Part 11's defender-
+reward finding), not evidence the mechanic does nothing, it's built and
+balance-neutral, its actual value (a real hedge choice for a cautious
+human player) isn't something this pod can exercise.
+
+## Co-Founder, rebuilt around real equity instead of a free income bonus
+Correctly flagged as backwards: the original design paid the *host* a
+flat +5% Company income bonus for recruiting a broke player, with nothing
+concrete going to the co-founder beyond "something to do." That's a real
+incentive problem (profiting directly from someone else's loss) and a
+real engagement problem (no reason for the sidelined player to actually
+care what happens next). Rebuilt around a real, tracked stake instead:
+
+- **The host's income bonus is gone entirely.** The host's only reason to
+  take on a co-founder now is the same Real Estate risk-management help
+  the mechanic always provided (`CO_FOUNDER_RE_NUDGE`, unchanged), paid
+  for with real equity dilution, not a bonus.
+- **The co-founder gets `co_founder_equity`**: a live 7% phantom stake in
+  the host's Company (`CO_FOUNDER_EQUITY_RATE`), marked to the host's
+  actual Company value every round and counted in the co-founder's own
+  `total_power()`, a real number they're watching grow or shrink, not a
+  static label.
+- **A real comeback path**: once the host can comfortably afford it (cash
+  above 1.2x the equity's current value, `CO_FOUNDER_BUYOUT_CASH_MULTIPLE`),
+  they can buy the co-founder out entirely. The co-founder gets a genuine
+  cash payout and is free again, either to be recruited elsewhere or to
+  start rebuilding independently, since the existing round loop already
+  runs income and allocation for every player unconditionally, a
+  bought-out co-founder naturally re-enters active play with no separate
+  code needed.
+- **A golden parachute if the host gets taken over instead**
+  (`apply_golden_parachute`): the co-founder gets 20% of whatever was
+  captured, paid directly to their own cash, and is freed to be recruited
+  again. The direct answer to "why would a co-founder risk attaching to
+  someone who might get raided": because even that downside pays them
+  something real, unlike an organic bankruptcy, where there's no acquirer
+  to pay a severance from and the equity is simply gone.
+
+`CO_FOUNDER_EQUITY_RATE` was swept, the same way `PEER_LOAN_LEND_FRACTION`
+was in Part 9, because the natural first guess (15%) turned out to price
+buyouts out of reach almost entirely:
+
+| Equity rate | % of games with at least one buyout |
+|---|---|
+| 15% | 3.7% |
+| 10% | 4.3% |
+| 8% | 23.3% |
+| **7% (chosen)** | **48.0%** |
+| 6% | 45.0% |
+
+A sharp threshold, not a smooth curve: these bots hold very little idle
+cash by strategy (most archetypes reinvest almost everything they earn),
+so a buyout is only reachable at all once the equity cost drops below
+what an Aggressor or Socialite typically keeps on hand. 7% lands close to
+a coin flip, real and achievable without being guaranteed, matching how
+often an actual startup buyout happens versus doesn't.
+
+Full validation, 500 trials, `CO_FOUNDER_ENABLED`:
+
+| Metric | Result |
+|---|---|
+| `AvgDeadRoundsPerPlayer` | 0.030 (still effectively zero, matching the original Co-Founder fix) |
+| Games with at least one buyout | 48.0% |
+| Games with at least one golden parachute | 23.6% |
+| Full-game balance | Socialite 83.2%, gap 9.7% (baseline: 84.2%, gap 10.9%, noise) |
+
+Clean: dead rounds stay near zero, balance is unmoved, and both new
+payout paths (buyout, parachute) fire often enough to be a real, felt
+part of a game, not a theoretical mechanic that never triggers.
+
 ## Everything combined
 | Configuration | Top archetype | Gap |
 |---|---|---|
-| Baseline | Socialite 84.2% | 10.9% |
-| Industries alone | Socialite 76.4% | 7.1% |
-| **Industries + Bank deposits + Idle cash erosion, all together** | **Socialite 64.3%** | **5.3%** |
+| Baseline | Socialite 81.0% | 10.2% |
+| Industries alone | Socialite 76.7% | 7.3% |
+| **Industries + Bank deposits + Idle cash erosion + Gold, all together** | **Socialite 65.3%** | **5.2%** |
 
 Still clean by this file's standing bar (leader stays Socialite, no
 archetype crosses 50%, the gap never approaches the 1.1% coin-flip
-fragility that forced the Part 7 fix), but the compression is real, not
-noise: three independent mechanics that each individually inject more
-variance and more viable strategies visibly widen who can compete.
-Diversifier, which won close to 0% of games in every other configuration
-in this file, wins 7.2% here, the first time in this entire testing
-history that a third archetype has taken a real share, a genuinely
-positive sign that Industries is opening a new path to winning rather than
-just adding noise around the existing one.
+fragility that forced the Part 7 fix), consistent with the first pass of
+this finding: independent mechanics that each inject more variance and
+more viable strategies visibly widen who can compete without breaking the
+anti-snowball correction underneath them.
 
 ## What Part 12 doesn't cover
-- Whether `JV_CONTRIBUTION_RATE` (30%) is the right scale, only tested
-  against this bot pod's existing JV-forming behavior (Socialite,
-  Diversifier, Casual), not retuned for it.
+- Whether the JV's fixed 10-unit stake is the right scale at every
+  player-wealth level, only tested against this bot pod's existing
+  JV-forming behavior (Socialite, Diversifier, Casual).
 - The scenario table's positive skew (noted above) has not been
   rebalanced; flagged as a known property, not fixed.
 - `BANK_DEPOSIT_RATE` and `BANK_DEPOSIT_BUFFER` were set from the existing
   rate ladder (below every active return, matching the loan-rate floor)
   rather than swept, unlike `PEER_LOAN_LEND_FRACTION` in Part 9.
+- Gold's actual balance effect can't be measured by this bot pod, since
+  only two low-relevance archetypes (Turtle, Diversifier) ever touch it,
+  see above.
+- Gold is not yet part of `collect_payment`'s liquidation cascade
+  (cash then Company then Real Estate), a player who owes more than that
+  covers can't be forced to sell Gold to pay it, a known scope gap.
+- Co-Founder buyout and golden parachute payouts haven't been tested in
+  combination with Industries, Gold, or the tax mechanics active at the
+  same time.
   A future pass could sweep these the same way if deposits ever look like
   they're doing more than the modest, safe job intended.
 - All of Part 12's mechanics against player counts other than 6, and
