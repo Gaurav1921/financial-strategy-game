@@ -1,8 +1,11 @@
 # [Working Title: "Consortium"] - Game Design Doc
 
 ## 1. Pitch
-A web-based financial strategy game for a small group of friends (up to 7)
-playing together in one sitting - start to finish in under an hour, like a
+A web-based financial strategy game for a small group of friends (**5 to
+7**, simulation-tested: at 3 to 4 players the fixed round structure locks
+the outcome in almost immediately, only one archetype ever wins, see
+BALANCE_TESTING.md Part 3) playing together in one sitting - start to
+finish in under an hour, like a
 board game night, not a slow mobile game you check in on for weeks. Everyone
 builds a company and grows their **Power** - a combined score built from
 cash, real estate, stock positions, and captured rivals, not just a single
@@ -64,6 +67,32 @@ Simulation-tested: this structure measurably works (see BALANCE_TESTING.md
 Part 2) - it doesn't fully solve the "one aggressive player snowballs
 unopposed" risk on its own (Section 9 covers this honestly), but it clearly
 helps.
+
+**What actually happens in one round.** A round is a year, and every round
+runs the same eight steps, whether it's Building or Conflict:
+1. **Income** - Company, Real Estate, and any stock positions pay out
+   based on what you held *last* round.
+2. **Allocate** - everyone secretly decides where this round's income
+   goes: Company, Real Estate, the Market, paying down a loan, or holding
+   cash. The core simultaneous decision, every round.
+3. **Alliances** - propose or accept new Joint Ventures; existing ones
+   resolve (hold or drain).
+4. **Loans** - borrow if you want to, Bank capacity permitting; any peer
+   loans between allies settle.
+5. **Combat** (Conflict Phase only) - takeovers and "gang up on the
+   leader" counter-attacks resolve.
+6. **The Market re-prices** - stock positions revalue against what just
+   happened to the companies they're tied to, including a takeover that
+   just landed.
+7. **Taxes and upkeep** - income tax on everything earned this round
+   combined, Real Estate liquidation if anyone chose it, inflation on idle
+   cash.
+8. Round ends, move to the next.
+
+Building Phase skips step 5 only, everything else runs identically every
+round. Power Card plays and Declare/Audit challenges slot into steps 2 and
+5, wherever the claim is actually made. Matches `sim/human_sim.py`'s
+`simulate_game` loop exactly.
 
 ## 5. The six ways to make money
 Every round, you choose how to spread your money across six different
@@ -176,6 +205,46 @@ part of the game.
   protected by design, not just by the defense math.
 
 ## 7. Defense Pacts - alliances that protect, not just profit
+
+**What actually happens to each player's Power when an alliance ends.**
+Asked directly and worth answering precisely, since Joint Ventures and
+Defense Pacts work completely differently here:
+
+- **Your individual Power components** (Cash, Company, Real Estate, Stocks,
+  Captured value, Debt) are **never merged, pooled, or shared**, by either
+  alliance type, ever. They stay 100% your own the entire game.
+- **A Defense Pact pools nothing.** It's a promise, not a transaction: an
+  ally's cash counts toward *your defense calculation* while the pact is
+  active (Section 6), a temporary borrowed weight in one formula, not a
+  transfer of anything. When the pact ends, that weight just stops being
+  added. No asset ever changed hands, so there's nothing to distribute.
+- **A Joint Venture pools a separate, distinct pot**, only the specific
+  amount each partner contributed (10 each by default), which grows
+  together while both hold. That pot exists apart from either partner's
+  individual Cash the whole time it's active. When it resolves, whatever
+  the pot is worth gets split and paid back into each partner's *own* Cash.
+
+**The backstab process, step by step** (Section 5's 65/35 split, in full):
+1. Two players agree to a JV, each puts in a fixed stake (10 each) into the
+   shared pot. That stake leaves their own Cash the moment they commit.
+2. Each round the JV stays open, the pot grows (12%/round) while it isn't
+   touched.
+3. Each round, both partners privately decide, same simultaneous-secret-move
+   timing as everything else (Section 4's step 2): keep holding, or drain.
+4. **If one drains while the other holds**: the JV ends immediately. The
+   drainer's Cash goes up by 65% of the current pot; the partner who kept
+   holding gets the remaining 35%, added to their own Cash. That's the
+   whole betrayal, a single round's resolution, not a process that plays
+   out over time.
+5. **If both drain the same round**: a smaller, even split (40% each)
+   instead, neither one gets the full drainer's cut.
+6. **If both keep holding to the JV's natural end** (or the game ends):
+   even 50/50 split.
+7. A drain is recorded (`drain_count`). Two proven drains triggers the
+   reputation tax: no more easy idle income, and worse growth rates on any
+   JV that player still manages to form (Section 5, BALANCE_TESTING.md
+   Part 1).
+
 Beyond Joint Ventures (which are financial), you can form a **Defense
 Pact**: a promise that if your partner is attacked, you help defend them.
 Borrowed from Civilization's alliance mechanics. Gives alliances a
@@ -231,19 +300,21 @@ player:
 - **The Broker** - skims cash from a rival / blocks being skimmed from
 - **The Banker** - better loan terms / blocks someone calling in a loan against you
 - **The Insider** - peek at a hidden thing (a rival's holdings, a rumor's truth)
-- **The Analyst** (recommended 7th card, not yet locked in) - manipulate
-  the Market: force a rival's stock position to be revealed, or issue a
-  public "report" that moves how much a target's company is perceived to
-  be worth for one round / blocks another player's Analyst move against
-  you or your holdings. The Market (Section 5.3) is the one core money
-  mechanic none of the other six cards touch at all, everything else
-  clusters around income, takeovers, loans, and information. Alternatives
-  considered: **The Regulator** (can freeze or partially seize a rival's
-  Real Estate for a round, the only card that would ever threaten the
-  otherwise-untouchable safe asset) and **The Fixer** (clears reputation
-  marks / drain count, a "clean slate" card). The Analyst is the strongest
-  fit for making Power Cards reinforce the financial side of the game
-  rather than adding another combat lever.
+- **The Analyst** (**locked in** as the 7th card) - manipulate the Market:
+  force a rival's stock position to be revealed, or issue a public
+  "report" that moves how much a target's company is perceived to be worth
+  for one round / blocks another player's Analyst move against you or your
+  holdings. The Market (Section 5.3) is the one core money mechanic none
+  of the other six cards touch at all, everything else clusters around
+  income, takeovers, loans, and information. Alternatives considered but
+  not chosen: **The Regulator** (freeze or partially seize a rival's Real
+  Estate for a round) and **The Fixer** (clears reputation marks / drain
+  count). The Analyst is the strongest fit for making Power Cards
+  reinforce the financial side of the game rather than adding another
+  combat lever. Note the name collision worth fixing before this ships:
+  **The Raider** (a Power Card, above) and the **Hidden Raider** role
+  (Section 8.2) use the same word for two unrelated things, real confusion
+  risk at a live table ("wait, the card or the role?").
 
 Not yet simulated - bluffing behavior is hard to model meaningfully without
 simulating the bluffing itself, which is a separate piece of work (see
@@ -256,8 +327,30 @@ A minority of players are secretly **Raiders** - their win condition
 requires certain companies to fail (activist short-sellers), invisible to
 the majority **Builders** (standard Power-maximizing win condition). You're
 never just wondering "will they choose greed" - you're wondering whether an
-ally is even capable of staying loyal. Ratio and reveal timing still open
-(Section 9).
+ally is even capable of staying loyal.
+
+**First simulation pass, done.** Roughly 1 Raider per 5-6 players (a real
+minority, needs at least 4 players to make sense, which is now moot given
+Section 1's 5-7 player range), each secretly assigned one target. A Raider
+sabotages two ways: takeover/counter-attack targeting prefers their
+assigned mark over the usual richest-beatable choice, and if allied with
+their target via a Joint Venture, they drain it against them far more
+often (60% vs the ordinary Aggressor-only 30%). Win condition: the target
+ends the game bankrupt, or below half the table's average Power.
+
+Results (`sim/human_sim.py`, six-player pod, realistic mistakes + raid
+fatigue active): adding Raiders left Builder-side win rates essentially
+unchanged (Socialite 73.3% → 74.8% without vs with), the core Power game
+isn't destabilized by a hidden saboteur in the mix. Raiders themselves hit
+their secret win condition in **14.9%** of games, a real, achievable rate
+that isn't trivial and isn't hopeless either, a first, defensible data
+point, not a fully tuned number.
+
+**Still open**: reveal timing (never, end of game, or a player-triggered
+reveal), whether Raiders should also withhold Defense Pact support from
+their target (not yet modeled), and whether the 14.9% success rate is the
+right target or needs tuning once reveal timing and Power Cards are
+layered in.
 
 ### 8.3 Declarations & Audits
 Any claim (a trade offer, a tip, a statement of your own holdings, a Power
@@ -288,13 +381,28 @@ informational, no cash or Power changes hands. You can still leak one piece
 of information about anyone at any point, and your backing choice is what
 your final-round vote is actually for, if the top two players finish
 within a hair of each other, whichever one more Board Observers were
-backing wins the tie. That's the whole mechanic, made real instead of
-flavor text.
-Simulation-validated: `AvgDeadRoundsPerPlayer` (rounds with nothing
-meaningful to do, defined as "broke AND haven't picked who to back yet")
-drops to 0 at every player count tested, because the choice only needs to
-be made once, immediately, and win rates are unchanged from baseline since
-nothing financial is touched.
+backing wins the tie.
+
+**Co-Founder: an even better fix, added after review pushed back.**
+Picking a name to root for isn't actually an action, correctly called out
+directly: "still they just sit in the game, it's not like they can do
+anything." Fair. **Co-Founder** replaces backing as the preferred outcome:
+a broke player can be recruited by a living player to actively co-run
+their company. As co-founder, every remaining round, they redirect a real
+slice of the host's fresh income toward Real Estate (a genuine, repeated,
+risk-management decision, not a one-time label), and in exchange the host
+gets a modest income bonus (+5% Company income) for having them aboard, a
+real reason to want a co-founder, not a favor with nothing in it for
+either side. One co-founder per host. Backing is now the fallback only for
+whoever isn't recruited.
+Simulation-validated: `AvgDeadRoundsPerPlayer` still drops to 0 at every
+player count tested. Host recruitment is deliberately **random among
+eligible hosts, not "richest available"**: an early version preferring the
+richest host quietly fed the income bonus to whoever was already leading,
+cutting Socialite's win rate from 85.9% to 75.5%, the same
+snowball-reinforcing pattern this whole project kept finding elsewhere.
+With random host selection, the cost is much smaller and honestly
+reportable: 85.9% → 83.2%.
 
 ### 8.5 The Final Round
 Deliberately different from the rest of the game. Game theory says rational
@@ -312,9 +420,11 @@ build, makes losses sting more and wins feel more like *yours* - especially
 for a group of friends playing together.
 
 ## 9. Open risks (named honestly, not yet solved)
-- **Power Cards' 7th card** - still undecided.
-- **Raider/Builder ratio and reveal timing** - too early kills tension, too
-  late feels unfair. Not yet simulated against the Power system.
+- ~~Power Cards' 7th card - still undecided~~ **resolved**: The Analyst is
+  locked in (Section 8.1). Power Cards as a whole are still unsimulated.
+- ~~Raider/Builder ratio and reveal timing~~ **ratio simulated**: roughly 1
+  Raider per 5-6 players, 14.9% Raider success rate, no measurable effect
+  on Builder balance (see Section 8.2). **Reveal timing is still open.**
 - **Onboarding**: teaching Power (not just cash), the two phases, allies
   not being mandatory, and the final round being different - a lot to land
   in one sitting with a first-time group. Probably needs a guided first
@@ -326,18 +436,16 @@ for a group of friends playing together.
   most of a small-group game plays out as a foregone conclusion. Needs a
   player-count-scaled round count, not yet designed.
 - ~~Ordinary human inconsistency weakens the anti-snowball fix more than
-  expected~~ **mostly resolved**: Finding 5's fix only ever won by a 1.1%
-  margin (405.9 vs 401.3 Power), a coin flip dressed up as a validated
-  result, which is why realistic imperfection could flip it so easily.
-  Fixed at the root: the "how far ahead is a runaway leader" threshold that
+  expected~~ **resolved**: Finding 5's fix only ever won by a 1.1% margin
+  (405.9 vs 401.3 Power), a coin flip dressed up as a validated result,
+  which is why realistic imperfection could flip it so easily. Fixed at
+  the root: the "how far ahead is a runaway leader" threshold that
   triggers the gang-up mechanic was lowered from 1.3x to 1.05x, keeping the
   correction engaged continuously instead of only firing once a lead is
-  already dramatic. Combined with the existing raid fatigue mitigation,
-  Socialite now wins 85.9% of games even under the mistakes fragility
-  (Aggressor down to 13.3%, still a viable if underdog strategy, not
-  eliminated). See BALANCE_TESTING.md Part 7. Two of the four financial
-  mechanics below (long/short stocks, peer lending) still misbehave even on
-  this stronger foundation and need their own fixes.
+  already dramatic. Combined with raid fatigue, Socialite wins 85.9% of
+  games even under the mistakes fragility (Aggressor down to 13.3%, still
+  a viable if underdog strategy, not eliminated). See BALANCE_TESTING.md
+  Part 7.
 - **A "fear after being hit" reaction was deliberately not modeled.**
   Multiple attempts to simulate a player playing scared and defensive for a
   few rounds after a takeover all backfired in archetype-specific ways
@@ -345,9 +453,11 @@ for a group of friends playing together.
   attacked is probably a real design factor, but needs a dedicated,
   archetype-aware modeling pass, not a bolt-on trait.
 - ~~What an eliminated player does for the rest of a live session~~
-  **resolved**: Board Observers now back a living player for a cut of their
-  future captures (Section 8.4), simulation-validated to zero out dead
-  rounds. See BALANCE_TESTING.md Part 3.
+  **resolved**: Board Observers can now be recruited as a Co-Founder,
+  redirecting a real slice of the host's income every round in exchange for
+  a modest income bonus to the host (Section 8.4), simulation-validated to
+  zero out dead rounds with negligible balance cost. See BALANCE_TESTING.md
+  Part 9.
 - **Defense Pact breakup has no defined cost.** Declaring or ending an
   alliance mid-game isn't addressed anywhere in Sections 6-7: can a player
   freely flip allegiance round to round with no consequence? Currently
@@ -355,27 +465,29 @@ for a group of friends playing together.
   (nobody knew anyway); ending a *declared* pact costs a reputation mark
   and takes effect starting the following round, not the same round,
   mirroring the JV reputation tax's 2-strike pattern.
-- **Two of four financial-depth mechanics are now validated, two still
-  need fixes**: real long/short stock positions, a progressive income tax
-  (assessed once a round on every source of profit combined, company/Real
-  Estate income, capture proceeds, and Joint Venture proceeds together,
-  matching how income tax actually works), idle cash erosion, and
-  peer-to-peer lending (all in `sim/human_sim.py`, requested to make the
-  game rely more on financial decisions and less on combat). Against the
-  original 1.1%-margin baseline, three of the four broke it. Retested
-  against the widened anti-snowball margin (see the item above): **idle
-  cash erosion and the income tax are now clean** (the income tax fix also
-  directly answers "why does Aggressor barely pay it": the first version
-  only taxed passive company/Real Estate income, which Aggressor barely
-  generates since their strategy is staying liquid, the corrected version
-  taxes all profit including raid proceeds, and Aggressor now pays the
-  highest effective rate of any archetype, 7.2% vs 3-5% for everyone else).
-  **Long/short stocks and peer-to-peer lending still misbehave**, for the
-  reasons diagnosed in BALANCE_TESTING.md Part 6 (Aggressor's cash-only
-  strategy is structurally insulated from anything that only adds risk to
-  company/Real Estate/stocks; peer loans rescue cash-strapped players, who
-  are usually Aggressor's own recent victims, speeding up how fast they
-  become worth raiding again). Real estate can now also be voluntarily
+- ~~Two of four financial-depth mechanics are now validated, two still need
+  fixes~~ **all four now validated**: real long/short stock positions, a
+  progressive income tax (assessed once a round on every source of profit
+  combined, company/Real Estate income, capture proceeds, and Joint
+  Venture proceeds together, matching how income tax actually works), idle
+  cash erosion, and peer-to-peer lending (all in `sim/human_sim.py`).
+  Against the original 1.1%-margin baseline, three of the four broke it;
+  against the widened margin, idle cash erosion and the income tax came
+  back clean immediately (the income tax fix also directly answers "why
+  does Aggressor barely pay it": the first version only taxed passive
+  company/Real Estate income, which Aggressor barely generates, the
+  corrected version taxes all profit including raid proceeds, and
+  Aggressor now pays the highest effective rate of any archetype, 7.2% vs
+  3-5% for everyone else). **Peer-to-peer lending** needed two rounds of
+  fixing: the real mechanism wasn't "rescuing Aggressor's victims" as first
+  diagnosed, it was Socialite (the only archetype that both allies and
+  keeps spare cash) giving away 30% of their own war chest every time they
+  lent, undermining their own counter-attack capability; capping the loan
+  at 10% of the lender's cash fixed it. **Long/short stocks** is clean
+  under realistic play (with the other three mechanics active) but still
+  breaks the artificial zero-mistake bot baseline, a narrower, honestly
+  reported result rather than a full fix. See BALANCE_TESTING.md Part 9.
+  Real estate can now also be voluntarily
   liquidated for cash (at a 15% haircut) when a player is low on liquidity,
   the direct answer to "Real Estate can't be touched by an attacker, so
   what's a player's own way to convert it to cash when they need to."
@@ -383,7 +495,8 @@ for a group of friends playing together.
 ## 10. MVP Scope (Live Mode)
 
 ### In scope (v1)
-- Up to 7 players, one sitting, ~45–60 minutes.
+- 5 to 7 players, one sitting, ~45–60 minutes. Not "up to 7": 3 to 4
+  players is a structurally different, currently-broken game (Section 1).
 - Building Phase + Conflict Phase structure.
 - All six money mechanics (Company, Real Estate, Market, Loans, Joint
   Ventures, Takeovers) - simulation-tested numbers from Section 5/6.

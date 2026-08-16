@@ -824,3 +824,142 @@ they'd never form a Joint Venture with).
 - Real human alliance-seeking behavior, this is still bots, and the
   specific limitation here (only some archetypes ally at all) likely
   understates how much a cap matters at a real table.
+
+---
+
+# Part 9 - Co-Founder, Hidden Raider, and fixing the last two broken mechanics
+
+## Why this exists
+A single round of direct questions caught a real flaw (Board Observer
+backing wasn't actually an action), asked why the Hidden Raider role still
+hadn't been simulated after two full review cycles, and asked for the two
+broken financial mechanics from Part 6/7 to actually get fixed instead of
+staying diagnosed-but-not-applied. All three addressed here.
+
+## Board Observer, redesigned again: Co-Founder
+Backing (Part 4) fixed the dead-rounds metric but, correctly called out
+directly, didn't actually give a broke player anything to *do*, picking a
+name to root for isn't an action. **Co-Founder** replaces it as the
+preferred outcome: a broke player can be recruited by a living player to
+actively co-run their company. Every remaining round, they redirect a real
+slice of the host's fresh income toward Real Estate (`CO_FOUNDER_RE_NUDGE`,
+10%), a genuine, repeated decision, not a one-time label. In exchange the
+host gets a modest income bonus (`CO_FOUNDER_INCOME_BONUS`, +5% Company
+income) for having them aboard, a real reason to want a co-founder. One
+co-founder per host. Backing remains the fallback for anyone not recruited.
+
+**First version had a real bug**: host recruitment preferred whoever
+currently held the most Power ("the richest available host"). That quietly
+handed the income bonus to whoever was already winning, the exact
+snowball-reinforcing pattern this whole project kept finding and fixing
+elsewhere, and cut Socialite's win rate from 85.9% to 75.5%. Fixed:
+recruitment is random among eligible hosts. With that fix, the cost drops
+to a small, honestly-reportable 85.9% → 83.2%. Dead rounds still hit zero
+at every player count tested either way, the mechanism (an immediate,
+one-time recruitment decision) doesn't depend on which host gets picked.
+
+## Hidden Raider: first simulation pass
+Roughly 1 Raider per 5-6 players (`RAIDER_RATIO`), needs at least 4 players
+(moot now that Section 1 sets the range at 5-7). Each Raider is secretly
+assigned one target. Sabotage, two vectors:
+- **Targeting**: takeover and counter-attack target selection prefers the
+  Raider's assigned mark over the usual richest-beatable choice, when
+  actually within reach (`pick_target`).
+- **Joint Venture drains**: a Raider allied with their target via JV drains
+  against them at 60% probability per round, well above the ordinary
+  Aggressor-only 30% baseline.
+
+Win condition: the target ends the game bankrupt, or below half the
+table's average Power (`raider_succeeded`).
+
+**Result** (six-player pod, realistic mistakes + raid fatigue active,
+1500 trials): Builder-side win distribution barely moves with Raiders
+active (Socialite 73.3% → 74.8%), the core Power game isn't destabilized
+by a hidden saboteur in the mix. Raiders hit their own win condition in
+**14.9%** of games (224/1500), a real, achievable rate, neither trivial nor
+hopeless. A first, defensible data point, not a fully tuned number.
+
+**Not yet modeled**: whether a Raider should also withhold Defense Pact
+support from their own target (currently they'd still defend them
+passively if allied), and reveal timing (never, end-of-game, or
+player-triggered).
+
+## Peer-to-peer lending: the real fix took two attempts
+Part 6/7 diagnosed the problem as "rescuing Aggressor's own recent
+victims." Testing the fix showed that diagnosis was incomplete:
+
+1. **Exclude anyone still inside their Post-Attack Shield.** Cut
+   Aggressor's win rate from 99.8% to 88.9%, real progress, not a fix.
+2. **Exclude anyone ever raided this game, at all** (not just inside the
+   shield window). **Made no difference whatsoever, still 88.9%.** Tracing
+   actual cash flows settled it: the borrower was never the real
+   mechanism. Only Socialite (the one archetype that both forms alliances
+   and keeps spare cash) ever lends in this pod, and giving away 30% of
+   their own cash every time directly drained the exact war chest their
+   win condition depends on for counter-attacks, regardless of who
+   received it.
+3. **Cap the lending fraction.** Swept `PEER_LOAN_LEND_FRACTION` from 30%
+   down: 30% and 20% both still broke the baseline (88.9% and 99.8%
+   respectively, non-monotonic, consistent with other threshold sweeps
+   this project has hit), 10% and below came back clean.
+
+| Fraction | Bot baseline | Verdict |
+|---|---|---|
+| 30% (original) | Aggressor 88.9% | Broken |
+| 20% | Aggressor 99.8% | Broken (worse) |
+| **10% (fixed)** | **Socialite 100%** | Clean |
+| 5% | Socialite 100% | Clean |
+
+At 10%, under the harder mistakes + raid fatigue scenario: Socialite 71.7%,
+Aggressor 26.9%, a real cost (down from 85.9% with peer lending off
+entirely) but Socialite stays solidly dominant, not flipped. Both fixes
+(shield/ever-raided exclusion, 10% cap) are kept in the final version, the
+exclusion is still the thematically correct rule (you don't lend to
+someone mid-raid-recovery), even though the cap turned out to be the fix
+that actually mattered numerically.
+
+## Long/short stocks: clean under realistic play, still shaky on the artificial baseline
+Retested against the full current configuration (widened margin, raid
+fatigue, income tax, idle cash erosion, real estate purchase cost, fixed
+peer lending, co-founder, all active together, the combination Part 7
+flagged as never having been tested as a whole):
+
+| Configuration | Long/short off | Long/short on |
+|---|---|---|
+| + mistakes (realistic play) | Socialite 78.9% | **Socialite 82.7%** |
+| Clean bot baseline (zero mistakes) | Socialite 100% | Aggressor 78.7% |
+
+Under realistic play, the scenario this whole `human_sim.py` harness
+exists to approximate, long/short stocks is clean, slightly better than
+without it. On the artificial zero-mistake baseline, it still breaks
+things. Given Part 7 already found that baseline is close to fully
+deterministic (identical results across every seed once mistakes are off),
+and the entire point of this harness is testing against realistic
+imperfection rather than that narrow artificial case, this is reported as
+a genuine, if incomplete, improvement rather than a full fix.
+
+## Player count: the data doesn't support "4 to 7"
+Asked directly to confirm a 4-7 player range. Checked the actual sweep
+(current settings) before agreeing:
+
+| Players | Locked in by | Winner variety |
+|---|---|---|
+| 3 | round 1.3 of 15 | 1 archetype ever wins |
+| 4 | round 1.9 of 15 | 1 archetype ever wins |
+| 5 | round 9.5 of 15 | 3 archetypes win |
+| 6 | round 10.5 of 15 | 3 archetypes win |
+| 7 | round 10.9 of 15 | 4 archetypes win |
+
+4 players shows the identical failure mode as 3, locked in almost
+immediately with only one archetype ever able to win. The real breakpoint
+is between 4 and 5, not 3 and 4. GDD.md now states **5 to 7 players**, not
+4 to 7, in Sections 1 and 10.
+
+## What Part 9 doesn't cover
+- Whether a Raider should withhold passive Defense Pact support from their
+  target (see Hidden Raider section above).
+- Hidden Raider reveal timing.
+- A working fix for long/short stocks on the artificial zero-mistake
+  baseline specifically, only validated as clean under realistic play.
+- A player-count-scaled round structure for a hypothetical 3-4 player mode,
+  which is now explicitly out of scope rather than a bug to fix.
