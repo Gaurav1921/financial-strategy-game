@@ -180,16 +180,45 @@ part of the game.
 6. **Takeovers** - go after a rival's whole company (see Section 6).
 
 ## 6. Combat: attacking and defending
-- **When can you attack?** Everyone's Power is visible. You can attempt a
-  takeover any time in the Conflict Phase where your attack power (your
-  liquid money, plus any allies backing you) exceeds the target's defense
-  (their Real Estate + a portion of their cash + any allies defending them).
-- **Do you need allies to attack?** Not always - **it's a Power
-  comparison, not an ally requirement.** A rich-enough solo player can take
-  on an allied group if their total Power genuinely exceeds the group's
-  combined defense; allies are the easiest way to add power, not a
-  mandatory gate. (This was a real gap in an earlier draft - corrected
-  after being challenged on it directly.)
+
+**What everyone can actually see.** Asked directly, and it turned out to
+be a real gap: every balance-testing result in this project assumes
+players see each other's *full breakdown*, because that's literally what
+the bots read to decide who to attack, but the doc had only ever committed
+to showing the single combined **Power** number, never the breakdown
+itself. That's not the same thing, and the difference matters: a player
+with high Power from a big company could be sitting on almost no liquid
+cash (a weak attacker, easy to misjudge from Power alone), while someone
+with modest Power but all-cash could be genuinely dangerous and invisible
+on a Power-only leaderboard. **Fixed: every player's full breakdown, Cash,
+Company, Real Estate, Stock positions, Debt, is visible to everyone at
+all times, not just the combined Power figure.** That's what actually
+makes "read the warning signs" (below) possible, and it's what the
+anti-snowball mechanic (Section 9) has depended on the whole time without
+it ever being written down as a rule. The only thing that stays hidden on
+top of that is alliance backing: declared Defense Pacts are public
+(Section 7), covert ones stay hidden until a fight happens, JVs and Power
+Cards are always public knowledge of who's partnered with whom, only the
+hold/drain decision itself is secret each round.
+
+Seeing two rivals' cash piles and correctly reading "we're both exposed,
+let's team up" is the game working as intended, not a leak.
+
+- **Attack power is your cash only** (a portion of it), plus allies
+  backing you, **not your Company, Real Estate, or stock holdings.** Those
+  grow your Power but don't arm you; only liquid cash does.
+- **Defense is Real Estate (heavily) plus a portion of cash**, plus allies
+  defending you, **also not Company or stocks.**
+- **When can you attack?** Any time in the Conflict Phase where your
+  attack power exceeds the target's defense, both derived values above,
+  not a direct comparison of total Power.
+- **Do you need allies to attack?** Not always - **it's an attack-power
+  vs. defense comparison, not an ally requirement.** A rich-enough solo
+  player (in liquid cash specifically) can take on an allied group if
+  their attack power genuinely exceeds the group's combined defense;
+  allies are the easiest way to add power, not a mandatory gate. (This was
+  a real gap in an earlier draft - corrected after being challenged on it
+  directly.)
 - **How do you defend?** Two ways: park money in Real Estate (which is
   built to actually protect you - simulation-tested, see Section 5.2/#2),
   or spend directly on security that round at the cost of growth. Allies
@@ -484,6 +513,18 @@ for a group of friends playing together.
   (nobody knew anyway); ending a *declared* pact costs a reputation mark
   and takes effect starting the following round, not the same round,
   mirroring the JV reputation tax's 2-strike pattern.
+- **Should a Joint Venture partner automatically be a Defense Pact
+  partner?** Asked directly, and it's a real fork that's never been
+  deliberately decided, it just fell out of the simulation modeling both
+  as the same `allies` relationship. Two real options: (a) keep them
+  merged, "we're in business together, we've got each other's backs" as a
+  single relationship, simple, one cap covers both (Section 5); or (b)
+  split them into two independent relationships, a purely financial
+  partner who owes you nothing in a fight, and a separate combat ally who
+  isn't necessarily pooling money with you. (b) is more realistic and
+  arguably more interesting (a JV partner secretly declining to defend you
+  is its own betrayal beat) but doubles the bookkeeping and needs its own
+  cap and simulation pass. Not yet decided.
 - ~~Two of four financial-depth mechanics are now validated, two still need
   fixes~~ **all four now validated**: real long/short stock positions, a
   progressive income tax (assessed once a round on every source of profit
