@@ -1457,3 +1457,71 @@ themselves aren't memorizable.
 - Whether the widened Diversifier and Turtle win shares hold up against
   Parts 1-11's mechanics active in every combination, not just the Part 12
   set tested here.
+
+---
+
+# Part 14 - JV top-ups can outgrow the seed stake, and "reputation" became a real metric
+
+## Why this exists
+Two direct catches, both correct. First: JV top-ups were locked at exactly
+the original 10-unit seed forever, contradicting the actual ask, that
+later top-ups should be able to grow past the principal as both partners
+get richer, "invest again ten dollars or whatever that amount is... maybe
+we can increase also that amount." Second, and more serious: every
+explanation of the JV betrayal penalty in this file and in GDD.md kept
+saying "reputation" without that word ever pointing at an actual, visible
+number anywhere in the game. `drain_count` existed in the code, but its
+only effect was silently excluding a player from future bots' JV-formation
+candidate lists, invisible math nobody at a real table could see, check,
+or verify, a direct contradiction of the Power-only visibility design this
+project already committed to (Part 11).
+
+## The fix
+`JV_TOPUP_RATE` (20%): a top-up is now `max(JV_CONTRIBUTION_UNIT, min(both
+partners' cash) * 0.2)`, floored at the original 10 so it never shrinks
+below the seed, uncapped above so it grows freely as both partners
+accumulate wealth. Verified directly in an isolated two-player test with
+ample cash: top-ups scaled 10 -> 18 -> 14.4 -> 11.5 as available cash
+changed round to round, never stuck at a flat repeat of the seed.
+
+`apply_reputation_penalty`: fires exactly once, the round a player's
+`drain_count` crosses `REP_TAX_THRESHOLD` (2), and docks a real ~15% of
+their current total Power via the same `collect_payment` cascade used
+everywhere else in this file (cash, then Company, then Real Estate).
+Verified directly with forced drains: round 1 (first drain), Power rises
+280 -> 284.6, no penalty. Round 2 (second drain), Power rises from the
+drain itself but then drops to 245.8, a visible ~43-point hit, logged in
+`stats["reputation_penalties_paid"]`. Round 3 (third drain), no further
+penalty, confirmed it only fires once. "Reputation" is no longer a word
+gesturing at nothing, it's a real, one-time, visible Power event, exactly
+the kind of thing the rest of this design already promises players can
+see and act on.
+
+## Result
+Mistakes + raid fatigue harness, 1500 trials, both fixes active:
+
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Baseline with scaled top-ups and visible reputation penalty | Socialite 80.9% | 10.2% |
+
+No change from the pre-fix baseline (81.0%, 10.2%), confirmed clean. The
+reputation penalty itself is rare in this bot pod, firing in roughly 0.2%
+of games: reaching a *second* proven drain requires an archetype who both
+drains AND successfully re-forms a second JV afterward, an infrequent
+combination given Aggressor's 30%/round drain chance and the JV-formation
+candidate filter already excluding known repeat-drainers from new
+partnerships. Same honest limitation as Gold and the defender-reward
+mechanic (Part 11, Part 12): correctly built, correctly wired, and
+structurally rare for this specific bot pod to trigger, not evidence it
+doesn't work.
+
+## What Part 14 doesn't cover
+- `REPUTATION_PENALTY_PCT` (15%) was set directly, not swept.
+- Whether the JV-formation candidate filter (excluding drain_count >= 2
+  players) should be loosened now that a direct Power cost also exists,
+  effectively double-punishing a repeat drainer with both a wealth hit and
+  a market lockout. Left as-is since real players form JVs on their own
+  judgment, not a hard rule, this filter only shapes bot behavior.
+- The proposed Defense Pact breakup cost (GDD.md Section 9) was updated to
+  describe the same visible-Power-hit principle but still isn't built or
+  simulated.

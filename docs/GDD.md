@@ -189,8 +189,14 @@ part of the game.
    scale (pool more than either partner could bet solo) and real
    betrayal risk (see Section 7's full walkthrough, worked numeric
    example, and BALANCE_TESTING.md Part 12).
-   Reputation has real teeth: two proven betrayals and you lose access to
-   easy income and get worse terms on anything you still manage to form.
+   **"Reputation" isn't a hidden score, it's just what everyone already
+   saw happen.** A JV drain is a public event, the pot visibly moving
+   between two named players, not private math, so a second proven
+   betrayal costs you twice, openly: other players simply remember and
+   stop offering you new JVs (no separate score to track, they were in
+   the room), and it costs you directly in the one number the whole table
+   already watches, a real, visible Power hit the instant the second
+   betrayal is confirmed (see Section 7).
    **Two allies at a time, max.** Not a limit anyone had actually decided
    on, it fell out of how the bots were tuned, until it got questioned
    directly. A JV partnership and a Defense Pact currently share the same
@@ -395,6 +401,7 @@ ruleset yet, see BALANCE_TESTING.md Parts 6, 9, 12):**
 | Takeover / counter-attack capture | 25% of the target's *total* wealth, cash first, then Company, then Real Estate |
 | Failed attack penalty | Attacker loses 50% of what they staked, split evenly between the defender and the Bank |
 | JV drain split | 65/35 to the drainer if only one side drains, 40/40 (20% lost to friction) if both drain the same round, 50/50 if neither drains |
+| Second proven JV betrayal | An immediate, visible ~15% hit to the drainer's own total Power, docked the instant a second drain is confirmed (across any of their JVs); a first drain costs nothing beyond the relationship itself |
 | "Gang up on the leader" trigger | Any player whose total Power exceeds 1.05x the second-place player's becomes a valid counter-attack target |
 
 ## 6. Combat: attacking and defending
@@ -546,23 +553,26 @@ Defense Pacts work completely differently here:
 65/35 split, in full):
 1. Two players agree to a JV and it's assigned an Industry, say
    Healthcare. Each puts in 10, the pot opens at **20**.
-2. Round 2: nobody drains, both can afford another 10, they top up.
-   Healthcare has a flat year (delta 0%). Pot: (20 + 20) x 1.00 = **40**.
+2. Round 2: nobody drains, both can afford to top up. A top-up isn't
+   locked at the original 10 forever, it's 20% of whichever partner has
+   less Cash that round, floored at 10, so it naturally grows larger as
+   both partners get richer over the game. Healthcare has a flat year
+   this round (rolled delta near 0%). Pot stays close to **40**.
 3. Round 3: Healthcare gets a strong scenario, "A breakthrough vaccine is
-   announced" (Healthcare +4%). Neither tops up this round (one partner's
-   short on cash). Pot: 40 x 1.04 = **41.6**.
-4. Round 4: another strong Healthcare scenario lands (+4% again). Pot:
-   41.6 x 1.04 = **43.3**. **This is the moment a backstab actually pays**:
-   one partner privately decides to drain instead of letting it ride.
-   They get 65% of 43.3 = **28.1** straight into their own Cash. The
-   partner who didn't drain gets the remaining 35% = **15.2**. Compare
-   that 15.2 to what an even split would have paid (21.65 each): the
-   drainer walked away with 28.1 for two rounds of 10 each (20
-   contributed), a real, immediate profit on top of what an honest split
-   would have paid them, at the cost of the partnership and a mark on
-   their reputation.
+   announced," and the roll comes out +6% this time, not a fixed number,
+   a fresh roll every time this scenario lands. Neither tops up this round
+   (one partner's short on cash). Pot: 40 x 1.06 = **42.4**.
+4. Round 4: another strong Healthcare scenario lands, rolling +3% this
+   time. Pot: 42.4 x 1.03 = **43.7**. **This is the moment a backstab
+   actually pays**: one partner privately decides to drain instead of
+   letting it ride. They get 65% of 43.7 = **28.4** straight into their
+   own Cash. The partner who didn't drain gets the remaining 35% =
+   **15.3**. Compare that 15.3 to what an even split would have paid
+   (21.85 each): the drainer walked away with 28.4 for two rounds of 10
+   each (20 contributed), a real, immediate profit on top of what an
+   honest split would have paid them, at the cost of the partnership.
 5. **Why would someone actually do this, concretely**: the profit motive
-   is exactly that 28.1-vs-21.65 gap, real money, right now, no waiting.
+   is exactly that 28.4-vs-21.85 gap, real money, right now, no waiting.
    It's most tempting after a run of good scenarios has grown the pot
    large (a bigger pot means a bigger absolute gap between 65% and an
    honest 50%), and most tempting for a player who needs cash *this*
@@ -577,12 +587,20 @@ Defense Pacts work completely differently here:
 7. **If neither drains**: nothing pays out, the pot simply carries into
    next round, still moving with Healthcare, still growable with another
    top-up.
-8. A drain is recorded (`drain_count`) and ends that JV. Two proven drains
-   (across any of a player's JVs, not just one) triggers the reputation
-   tax: no more easy idle income, and worse growth rates on any JV that
-   player still manages to form (Section 5, BALANCE_TESTING.md Part 1).
-   The partner drained on has every reason to walk away and not reform a
-   JV with that player again, nothing in the rules forces them to.
+8. **A drain is recorded (`drain_count`) and ends that JV, in full view of
+   the table.** This isn't a private update, the pot visibly moving from
+   the shared position into the drainer's own Cash is exactly the kind of
+   thing everyone at the table sees happen, "reputation" doesn't need a
+   separate score anywhere, players simply remember who did this to whom.
+   A **second** proven betrayal (across any of a player's JVs, not just
+   one) costs the drainer directly and visibly: an immediate Power hit,
+   right then, roughly 15% of their current total wealth, docked on the
+   spot (BALANCE_TESTING.md Part 1, Part 12). Not a hidden counter,
+   not a quiet tax on future opportunities nobody can check, an actual
+   drop in the one number this whole game already commits to being the
+   only thing anyone tracks. The partner drained on, and everyone else
+   watching, has every reason to stop offering that player new JVs,
+   nothing in the rules forces them to, they simply know better now.
 
 Beyond Joint Ventures (which are financial), you can form a **Defense
 Pact**: a promise that if your partner is attacked, you help defend them.
@@ -611,14 +629,16 @@ anti-snowball fix on its own.
 they want, allies aren't locked in forever, but flip-flopping isn't free
 for a pact that was ever public:
 - **Ending a covert pact** costs nothing. Nobody outside the pact knew it
-  existed, so there's no reputation to spend.
-- **Ending a declared pact** costs a reputation mark, the same "publicly
-  broken your word" cost as a Joint Venture drain, and takes effect at the
-  *start of next round*, not immediately. You can't declare a pact to prop
-  up a defense number for one attack and un-declare it the instant that
-  attack resolves. Two broken declared pacts (mirroring the JV reputation
-  tax's threshold) means the same tax: no easy income, worse terms on
-  anything you still manage to form.
+  existed, so there's nothing publicly broken.
+- **Ending a declared pact** costs you, the same "publicly broken your
+  word" cost as a Joint Venture drain, and takes effect at the *start of
+  next round*, not immediately. You can't declare a pact to prop up a
+  defense number for one attack and un-declare it the instant that attack
+  resolves. Not yet built or simulated, so the exact cost isn't locked in,
+  but it should follow the same principle the JV fix landed on (Section 5,
+  Section 7): not a hidden "reputation" score nobody can see, a real,
+  visible Power hit the moment a second declared pact gets broken, the
+  same kind of consequence a JV drain now carries.
 This means switching who you back is always possible, real allegiance
 shifts are part of the game, but doing it loudly and often costs you the
 same way backstabbing a Joint Venture partner does. Not yet simulated.
@@ -647,8 +667,9 @@ player:
   of the other six cards touch at all, everything else clusters around
   income, takeovers, loans, and information. Alternatives considered but
   not chosen: **The Regulator** (freeze or partially seize a rival's Real
-  Estate for a round) and **The Fixer** (clears reputation marks / drain
-  count). The Analyst is the strongest fit for making Power Cards
+  Estate for a round) and **The Fixer** (resets `drain_count`, wiping a
+  player's proven-betrayal record clean). The Analyst is the strongest fit
+  for making Power Cards
   reinforce the financial side of the game rather than adding another
   combat lever. Note the name collision worth fixing before this ships:
   **The Raider** (a Power Card, above) and the **Hidden Raider** role
@@ -859,9 +880,10 @@ for a group of friends playing together.
   alliance mid-game isn't addressed anywhere in Sections 6-7: can a player
   freely flip allegiance round to round with no consequence? Currently
   undefined. Proposed fix, not yet simulated: ending a covert pact is free
-  (nobody knew anyway); ending a *declared* pact costs a reputation mark
-  and takes effect starting the following round, not the same round,
-  mirroring the JV reputation tax's 2-strike pattern.
+  (nobody knew anyway); ending a *declared* pact costs a real, visible
+  Power hit on the second break and takes effect starting the following
+  round, not the same round, mirroring the JV reputation fix's 2-strike
+  pattern (Section 5, Section 7) rather than a separate hidden score.
 - **Should a Joint Venture partner automatically be a Defense Pact
   partner?** Asked directly, and it's a real fork that's never been
   deliberately decided, it just fell out of the simulation modeling both
