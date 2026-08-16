@@ -1,11 +1,15 @@
-# Gameplay Guide (Live Mode, up to 7 players)
+# Gameplay Guide (Live Mode, 5 to 7 players)
 
 This is the practical companion to `GDD.md`. The GDD explains *why* each
 mechanic exists and how it was validated; this doc explains what a player
-actually sees and does, round by round, starting from Round 1 with a full
-table of 7. Numbers here match the simulation constants in
+actually sees and does, round by round, starting from Round 1. Numbers
+here match the current simulation constants in `sim/human_sim.py` and
 `sim/power_simulation.py`, the source of truth for anything not yet built
-in `backend/`.
+in `backend/`. The game's working title is **Hostile Ledger**.
+
+**Player count: 5 to 7, not 3 to 4.** Below 5 players, the eventual winner
+is locked in by round 2 or 3 of 15, most of the game plays out as a
+foregone conclusion. 5 to 7 is where the structure actually holds up.
 
 ## 1. Setup
 
@@ -16,207 +20,374 @@ Every player starts identical. No classes, no asymmetric starting kits.
 | Cash | 20 |
 | Company value | 80 |
 | Real Estate | 0 |
-| Stock positions | none |
+| Gold | 0 |
+| Market (Industry) positions | none |
 | Debt | 0 |
 | **Total Power** | **100** |
 
-The only hidden asymmetry is the **Builder / Raider split** (Section 8.2):
+Every player also picks a **company name, an icon, and one Industry**
+(Section 3) as part of setup, alongside the starting resources above.
+
+The only hidden asymmetry is the **Builder / Raider split** (Section 8):
 a minority of the table are secretly Raiders. Everyone still starts with
 the same 100 Power; the split only affects what counts as a personal win
 later, not Round 1 resources or options.
 
-The game runs **15 rounds**:
-- **Rounds 1-5: Building Phase.** No takeovers. Every other option is open.
-- **Rounds 6-14: Conflict Phase.** Takeovers unlock.
-- **Round 15: Final Round.** Distinct rules, see Section 7.
+The game runs **15 rounds**, split into three parts:
+- **Building Phase**: no takeovers. Every other option is open. **Its
+  length is 4 to 6 rounds and is rolled secretly at the start of the
+  game, never announced.** You genuinely don't know, round to round,
+  whether attacks are about to unlock. This is deliberate: a fixed,
+  known length turns the whole opening into a memorizable formula ("max
+  Company until round N, then pivot to defense"), and a repeat player
+  solves that once and never has to think about it again. Hiding the
+  length forces you to read the table's actual warning signs instead.
+- **Conflict Phase**: the rest of the game up to round 15. Takeovers
+  unlock the round after the Building Phase ends.
+- **Round 15, the Final Round**: deliberately different rules. See
+  Section 7.
 
 ## 2. The round loop
 
-Every round, every player does the same four steps, and everyone's moves
-lock in secretly, then resolve together. You never see an attack coming
-in the same round it happens.
+Every round runs the same eight steps, Building or Conflict, and
+everyone's moves lock in secretly before anything resolves. You never
+see an attack coming in the same round it happens.
 
-1. **Income** - your existing assets pay out: Company at 10%/round, Real
-   Estate at 5%/round, any stock positions at 8%/round (diluted, tracks
-   the target's growth). This happens automatically, no decision needed.
-2. **Allocate** - decide what to do with the cash you now have on hand.
-   This is the real decision point each round (Section 3).
-3. **Joint Venture resolution** - any JV you're in either holds (compounds
-   further) or gets drained, by you or your partner.
-4. **Takeovers** - Conflict Phase only. Declare an attack, or don't.
+1. **Income** - Company, Real Estate, Gold, and any Market positions pay
+   out based on what you held *last* round. Automatic, no decision needed.
+2. **Allocate** - everyone secretly decides where this round's income
+   goes: Company, Real Estate, Gold, the Market, a Bank deposit, paying
+   down a loan, or just holding cash. The core simultaneous decision,
+   every round.
+3. **Alliances** - propose or accept new Joint Ventures; existing ones
+   resolve (hold, top up, or get drained).
+4. **Loans** - borrow if you want to, Bank capacity permitting; any
+   outstanding peer-to-peer loans between allies settle.
+5. **Combat** (Conflict Phase only, skipped entirely during the Building
+   Phase) - takeovers and "gang up on the leader" counter-attacks
+   resolve.
+6. **The Market re-prices** - Industry positions revalue against that
+   round's scenario, including the knock-on effect of a takeover that
+   just landed.
+7. **Taxes and upkeep** - if enabled at your table: income tax on
+   everything earned this round combined, Real Estate liquidation if
+   anyone chose it, erosion on idle cash.
+8. Round ends, move to the next.
 
-Everyone locks in moves before anything resolves. Plan defensively based
-on what you can already see (who's rich and undefended, who's been
-allying), not on what happens this round.
+Plan defensively based on what you can already see (Section 6 covers
+exactly what that is), not on what happens this round.
 
-## 3. Your options, every round
+## 3. Industries and the Market
 
-These six are always available except where noted. You split your cash
-across as many of these as you want each round; nothing forces an
-all-in choice.
+The Market isn't a bet against a specific rival. Every player's company
+belongs to one of ten fixed **Industries**: Healthcare, Technology,
+Pharma, Energy, Financial Services, Consumer Retail, Agriculture,
+Manufacturing, Media & Entertainment, and Property. ("Property," not
+"Real Estate": Real Estate is the separate defensive asset class below,
+same name would be confusing at the table.) With 5 to 7 players and 10
+industries, most industries have zero or one player in them. That's
+fine, industries aren't scarce.
+
+**Every round, one scenario is drawn** and read out to the whole table as
+plain text, for example "A major regional conflict breaks out" or "A
+recession is officially declared." Each scenario has a logical,
+readable effect on a handful of industries (never all ten), and leaves
+the rest flat. This is real financial-literacy skill, not a dice roll:
+you can reason about "a recession hurts Consumer Retail," and it's
+genuinely unpredictable round to round, so it can't be memorized. Twenty
+example scenarios exist today; more can be added without touching the
+mechanic.
+
+**What a scenario actually pays out is never a fixed number.** The
+scenario text tells you the *direction and rough strength* (a strong move
+or a mild one, up or down), and the *exact size* is rolled fresh every
+time that scenario lands:
+- A strong move (`++` / `--`): 4% to 20% in that direction.
+- A mild move (`+` / `-`): 1% to 8% in that direction.
+
+If your company's Industry is hit that round, your Company income moves
+by that roll on top of its normal growth. You can also put money
+directly into the Market: a long or short position in any Industry
+(including your own), paying out on that same roll. Real Estate feels
+the Property roll too, but only at half strength. Unaffected industries
+just stay flat.
+
+### Gold
+A separate asset class, not tied to any Industry. Gold is a
+flight-to-safety hedge: it drifts around a low 0.5% to 3.5% in an
+ordinary round (a value-preserver, not a growth engine), gets a real
+kicker during crisis-flavored scenarios (war, recession, a financial
+shock), and pulls slightly negative during genuinely upbeat scenarios,
+money chasing growth assets instead. Not a way to grow fast; a way to
+lose less when everything else is losing.
+
+## 4. Your options, every round
 
 ### Grow Your Own Company
-Reinvest into your own company. 10%/round, no risk, always available.
-This is the baseline everyone can fall back on.
+Reinvest into your own company. 10%/round base, plus or minus whatever
+your Industry rolled this round (0 if your Industry wasn't affected).
+Always available, the baseline everyone can fall back on, but no longer
+guaranteed-positive: a bad roll in your own Industry can make a round's
+Company income negative.
 
-### Real Estate (the safe asset)
-Buy in at a ~3% closing cost. Real Estate pays a lower 5%/round, but it
-is the one asset that **cannot be touched by a takeover** and counts far
-more toward your defense than cash does. Liquidating it back to cash
-costs a 15% haircut, so it's a real commitment both ways, not a free
-parking spot.
+### Real Estate (the defense-weighted asset)
+Buy in at a 3% closing cost. Real Estate pays roughly 5%/round, adjusted
+by half of whatever that round's Property scenario rolled. It's still
+the asset that counts far more toward your **defense** than cash does
+(Section 6), the deliberate safe-harbor choice, **but it is no longer
+100% untouchable** if a takeover actually lands against you (see
+Section 6's capture cascade). Liquidating it back to cash, on your own
+terms, any time, costs a 15% haircut.
 
-Use it to bank a defensive floor, or as an emergency valve if you're
-short on cash. Both directions cost you something on purpose.
+### Gold
+Buy in with spare cash any round. Not weighted into defense or attack
+power the way Real Estate and cash are; it exists purely to smooth out
+your returns across good and bad scenario rounds.
 
-### The Market (stocks)
-Take a long or short position in *any* other player's company. No
-partnership or consent needed. Long if you think they're building well,
-short if you think they're about to get taken over or overleveraged.
-Positions pay out at 8%/round, tracking the target's actual growth.
+### The Market (Industry positions)
+Take a long or short position in any of the ten Industries. Pays out on
+that Industry's rolled scenario delta each round, same number that moves
+Company income and Joint Ventures in that Industry. No guaranteed rate,
+full exposure both directions.
 
 ### Loans
-Borrow from **the Bank**, a finite shared pool (100 capital per seat at
-the table, so 700 total at 7 players). Base interest is 8%/round, plus a
-risk premium of 35% per unit of leverage, so the more you borrow relative
-to your total Power, the worse your rate gets. Overleverage and you can
-go **bankrupt**: creditors seize 85% of your holdings, the remaining debt
-is discharged, and you stay in the game diminished rather than out
-entirely.
+Borrow from **the Bank**, a finite shared pool (100 capital per seat, so
+500 to 700 total depending on table size). Base interest is 8%/round
+plus a 35%-per-unit-of-leverage risk premium, so the more you borrow
+relative to your total wealth, the worse your rate gets. The Bank is
+shared: if several players lean on credit in the same stretch, later
+borrowers get worse terms or get shut out entirely.
 
-The Bank is shared. If several players lean on credit in the same
-stretch of rounds, later borrowers get worse terms or get shut out. Watch
-what the table is doing, not just your own balance.
+**Peer-to-peer loans** are also possible: another player lends you cash
+directly at a flat 20%/round, well above the Bank's typical 8-20%, real
+compensation for the real risk they're taking on you as a counterparty.
+
+Overleverage either way and you can go **bankrupt**: creditors seize 85%
+of everything you have (Cash, Company, Real Estate, Gold, Market and JV
+positions), the remaining 15% and your debt are both discharged. You
+stay in the game, diminished, not eliminated.
+
+**The Bank also pays interest on deposits.** Park cash above a small
+working-cash floor (10) with the Bank and earn a flat, safe 4%/round,
+deliberately below every active option. It beats letting cash sit idle
+without ever being smarter than actually investing.
 
 ### Joint Ventures (JVs)
-Pool cash with one ally (two allies max) for a return neither of you
-would get solo, at 12%/round while both sides hold. Either side can drain
-it early and keep 65% of the pot, leaving the other 35%. Two proven
-drains and you lose access to easy JV/idle income and get worse terms on
-anything you still manage to form, publicly, so reputation is visible to
-the whole table.
+Team up with one ally (two allies max) on a **shared position in one
+Industry**. It is not a separate bet with its own guaranteed rate: the
+pot moves with that Industry's real scenario delta every round, exactly
+the number that moves a solo Market position in the same Industry. A
+JV's *expected* return is identical to just investing in that Industry
+solo. What forming one actually buys you is scale (pooling more than
+either partner could bet alone) and real betrayal risk.
 
-A JV slot and a Defense Pact (Section 5) share the same relationship: an
-ally covers both at once, and the two-ally cap applies to the combined
-relationship, not to JVs and Pacts separately.
+**How it works, concretely:**
+- Each partner seeds the pot with 10. It opens at 20.
+- The pot persists and compounds across rounds; it doesn't reset every
+  round. Either partner can top it up later, an amount equal to 20% of
+  whichever partner currently has less cash (floored at the original 10,
+  skipped if it would leave that partner below 15 spare cash).
+- Each round, the pot moves with the assigned Industry's rolled delta,
+  same as any Market position.
+- Either partner can **drain** it at any time instead of letting it
+  ride: the drainer keeps 65% of the current pot, the other partner gets
+  35%. If both partners drain the same round, it's a smaller 40/40 split
+  (20% lost to friction). If neither drains, nothing pays out and the
+  pot just carries forward.
+- **A drain is public.** Everyone at the table sees the pot move from the
+  shared position into the drainer's own cash. There's no hidden
+  reputation score to track, players simply remember. A **second**
+  proven betrayal, across any of a player's JVs, costs them directly and
+  visibly: an immediate ~15% hit to their own current total Power,
+  docked the instant it's confirmed.
+
+A JV partnership and a Defense Pact (Section 5) currently share the same
+relationship: allying with someone covers both at once, and the two-ally
+cap applies to that combined relationship, not to each separately.
 
 ### Takeovers
-Attempt to take a rival's whole company. **Only available in the
-Conflict Phase (Round 6 onward).** See Section 6.
+Attempt to take a rival's whole company. **Only available once the
+Building Phase ends** (round 5 to 7, depending on that game's hidden
+roll). See Section 6.
 
-## 4. Round 1, concretely (7 players)
+## 5. Round 1, concretely
 
-Nobody has takeovers available yet, so a first round is purely economic.
-A typical player, starting from 20 cash / 80 company / 100 Power, is
-choosing among:
+Nobody has takeovers available yet (and won't for at least 4 more
+rounds, though exactly how many is hidden), so early rounds are purely
+economic. A typical player, starting from 20 cash / 80 company / 100
+Power in their assigned Industry, is choosing among:
 
-- Reinvest all 20 into the company (safe, slow, no exposure).
-- Split it: some into the company, some into Real Estate to start
-  building a defensive floor early, before anyone needs one.
-- Take a small stock position in a player you expect to grow fast.
-- Approach another player to form a Joint Venture, pooling cash for a
-  better combined return than either gets solo.
-- Borrow from the Bank to invest bigger than 20 cash allows, accepting a
-  worse rate the more leveraged you get.
-- Do nothing financially aggressive and instead start quietly signaling
-  or forming a Defense Pact (Section 5) for later, since alliances can
-  form from Round 1 even though attacks can't happen yet.
+- Reinvest into the company, accepting whatever that round's scenario
+  does to their Industry along with it.
+- Split it: some into the company, some into Real Estate, to start
+  building a defensive floor early, before anyone needs one, at a 3%
+  buy-in cost.
+- Take a small Market position in an Industry they read as likely to do
+  well, based on that round's scenario text.
+- Approach another player to form a Joint Venture in a shared Industry,
+  pooling cash for a bigger combined bet than either gets solo.
+- Borrow from the Bank, or deposit spare cash with it for a safe 4%,
+  instead of letting it sit idle.
+- Put a small amount into Gold as a hedge against a bad scenario roll
+  later.
+- Do nothing financially aggressive and instead start quietly forming a
+  Defense Pact (Section 5) for later, since alliances can form well
+  before attacks are possible.
 
 There's no wrong opening move: the Building Phase exists specifically so
-nobody can be punished for a slow start. What matters in Round 1 is
-starting to read the table (who's aggressive, who's cautious, who's
-allying with whom) before the Conflict Phase makes that information
+nobody can be punished for a slow start, and its hidden length means
+there's no fixed round where "switch to defense now" is the objectively
+correct move either. What matters early is reading the table (who's
+aggressive, who's cautious, who's allying with whom, which scenarios have
+landed so far) before the Conflict Phase makes that information
 actionable.
 
-## 5. Building your defense
+## 6. What you can actually see, and combat
 
-Two players with the same raw dollar total can have very different
-Power, and the same is true of defense. Your defense number is:
+**Only Power is shown, exactly, always, for every player.** Nothing
+else is visible by default: cash, Company value, Real Estate, Gold,
+Market positions, debt, and exact attack or defense capability are all
+genuinely unknown unless someone chooses to reveal them.
 
-**Real Estate + a portion of cash + any allies actively defending you.**
+- **Declarations** let a player claim something about their *own*
+  position (you can't declare things about someone else) to deter or
+  bluff.
+- **Any player can Audit any Declaration**, not just whoever it directly
+  threatens, at a resource cost, revealing the truth. Being caught lying
+  is penalized harder than a failed Audit.
+- **Declared Defense Pacts** are the one exception that's automatically
+  public, since the deterrent only works if it's visible. Covert ones
+  stay hidden until a fight actually happens.
 
-Ways to build it:
-- **Park money in Real Estate.** The single most effective defensive
-  move: it's protected from capture entirely and weighted heavily in the
-  defense calculation.
-- **Spend directly on security that round**, at the cost of growth that
-  round. A short-term option when you see a threat coming.
-- **Form a Defense Pact.** A promise that if you're attacked, your
-  partner helps defend you. Two flavors:
-  - **Declared**: public. Visibly adds to your defense number and
-    deters attackers, but everyone at the table now knows you're allied.
-  - **Covert**: off the record. Doesn't count toward your visible
-    defense (so it can spring a surprise on an attacker who thought the
-    fight looked winnable), but if it's ever audited and found empty,
-    that's penalized harder than a normal failed audit.
-- **Defender's edge**: in a close fight, you win ties. Defense counts at
-  a 1.05x bonus when compared against an attacker's power, so attacking
-  only makes sense with a real edge, not just parity.
+So "who's rich and undefended" is a real question you spend a resource
+to answer, not a leaderboard lookup.
 
-Ending a Pact: a covert one costs nothing to walk away from. A declared
-one costs a reputation mark and only takes effect starting *next* round,
-so you can't publicly declare a pact to inflate your defense for one
-attack and un-declare it the instant that attack resolves.
+**Attack power is your cash only** (a portion of it), plus any allies
+backing you. Company, Real Estate, and Market positions grow your Power
+but don't arm you; only liquid cash does.
 
-## 6. Attacking (Conflict Phase, Round 6 onward)
+**Defense is Real Estate (heavily weighted) plus a portion of your cash**,
+plus any allies defending you. Company and Market positions don't count
+toward defense either.
 
-You can attempt a takeover on any player whose defense your attack power
-(your liquid cash, plus any allies backing you) exceeds. It is a **Power
-comparison, not an ally requirement**: a rich enough solo player can take
-on an allied group if their total genuinely exceeds the group's combined
-defense. Allies are the easiest way to add power, not a mandatory gate.
+- **When can you attack?** Once the Conflict Phase opens, any time your
+  attack power exceeds a target's defense, both the derived values
+  above, not a raw Power comparison.
+- **Do you need allies to attack?** Not always. It's an attack-power vs.
+  defense comparison, not an ally requirement. A player holding enough
+  liquid cash solo can beat an allied group's combined defense if the
+  numbers genuinely support it.
+- **Defender's edge**: in a close fight, the defender wins ties. Defense
+  counts at a 1.05x bonus when compared, so attacking only makes sense
+  with a real edge, not just parity.
+- **You can't see an attack coming that exact round.** Everyone locks in
+  moves secretly and they resolve together. Read the warning signs ahead
+  of time instead: who's rich and undefended, who's been forming
+  alliances.
 
-- **On success**: you capture 25% of the target's liquid (cash +
-  company) value. Their Real Estate is completely untouched.
-- **On failure**: you lose 50% of what you committed to the attack. This
-  is a real cost, not a free roll, so declaring an attack you can't back
-  up is a genuine risk.
-- **Post-Attack Shield**: a player who was just successfully taken over
-  is immune to further takeovers for 2 rounds. You can't just keep
-  farming the same victim.
-- **Anyone can gang up on a runaway leader**, not just dedicated
-  attackers. Everyone's Power is visible on a live leaderboard specifically
-  so the table can see who's pulling ahead and coordinate against them
-  before one player snowballs unopposed.
+**On a successful takeover**, the attacker captures 25% of the target's
+**total wealth**, not just liquid cash. The target pays cash first, then
+Company, then Real Estate (at the standard 15% liquidation haircut) if
+the rest isn't enough to cover it. Real Estate is still your best
+defense, it still counts far more than cash toward whether an attack
+succeeds in the first place, but it's no longer fully immune to what
+happens *after* an attack lands.
 
-## 7. The Final Round (Round 15)
+**On a failed attack**, the attacker still loses 50% of what they
+committed. That loss doesn't just vanish: half goes to the defender who
+successfully protected themselves, a real reward for defending; half
+goes to the Bank.
 
-Deliberately different from every round before it. Rational play in a
-known final round means allies who were holding Joint Ventures honestly
-all game have a real incentive to drain rather than hold, since there's
-no next round to protect a reputation for. Expect it, don't be surprised
-by it: the strongest honest strategy across the whole game isn't "always
-honest," it's "honest all game, then take the expected defection in the
-final round."
+**Post-Attack Shield**: a player who was just successfully taken over is
+immune to further takeovers for 2 rounds. Nobody can just keep farming
+the same undefended victim.
 
-If a player has already been fully taken over or gone bankrupt earlier in
-the game, they don't just leave: they become a **Board Observer** with
-one choice, picking a living player to **back**. That backing is purely
-social (no cash or Power changes hands), but it's what a Board Observer's
-final-round vote is for: if the top two players finish within a hair of
-each other, whichever one had more Board Observers backing them wins the
-tie.
+**Anyone can gang up on a runaway leader**, not just dedicated
+attackers. Any player whose total Power exceeds 1.05x the second-place
+player's becomes a valid counter-attack target for the whole table, and
+since only Power is visible by default, spotting this requires everyone
+to actually be watching the leaderboard.
 
-## 8. Putting it together: building wealth vs. building defense
+## 7. Defense Pacts and the Final Round
 
-There's no single correct split. The six options trade off against each
+Beyond Joint Ventures (financial), you can form a **Defense Pact**: a
+promise that if your partner is attacked, you help defend them.
+
+- **Declared**: public. Visibly adds to your partner's defense number, a
+  real deterrent, but everyone now knows you're allied.
+- **Covert**: off the record. Doesn't count toward your partner's
+  visible defense, so an attacker can be lured into a fight that looks
+  winnable and isn't, but if it's ever audited and found empty, that's
+  penalized harder than a normal failed Audit.
+
+Either side can walk away from a Defense Pact whenever they want. Ending
+a covert one costs nothing, nobody outside it knew it existed. Ending a
+declared one costs you the same kind of real, visible Power hit a second
+proven JV betrayal does, and takes effect starting the *next* round, not
+immediately, so a pact can't be declared to inflate a defense number for
+one attack and un-declared the instant that attack resolves.
+
+**Round 15, the Final Round, is deliberately different.** Rational play
+in a known final round means allies holding Joint Ventures honestly all
+game have a real incentive to drain rather than hold, since there's no
+next round left to protect a reputation for. Expect it: the strongest
+honest strategy across the whole game isn't "always honest," it's
+"honest all game, then take the expected defection in the final round."
+
+If a player has already been fully taken over or gone bankrupt earlier,
+they don't just leave. A living player can recruit them as a
+**Co-Founder**: every remaining round, the co-founder redirects a real
+slice of the host's cash toward Real Estate, and in exchange earns a
+real, growing equity stake (7% of the host's Company, marked to its
+current value every round) that counts toward their own standing. The
+host can later buy the co-founder out entirely for cash, freeing them to
+rebuild or be recruited elsewhere. If the host instead gets taken over,
+the co-founder gets a golden parachute: 20% of whatever the attacker
+captured, paid straight to their own cash. Whoever isn't recruited falls
+back to simply **backing** a living player, a purely social pick with no
+cash or Power attached, but it's what their final-round vote is for: if
+the top two players finish within a hair of each other, whichever one
+had more backers wins the tie.
+
+## 8. The Hidden Raider
+
+A minority of the table (roughly 1 in every 5 to 6 players) are secretly
+**Raiders**, invisible to the majority **Builders**. A Raider's win
+condition is tied to a secretly assigned target ending the game
+bankrupt or below half the table's average Power, not to their own
+Power being highest. They pursue it two ways: preferring their assigned
+target when choosing who to attack, and, if allied with that target via
+a Joint Venture, draining it far more often than an ordinary betrayal
+would. You're never just wondering whether an ally will choose greed,
+you're wondering whether they're even capable of staying loyal to you at
+all. Reveal timing (never, end of game, or player-triggered) is still
+undecided.
+
+## 9. Putting it together: building wealth vs. building defense
+
+There's no single correct split. The options trade off against each
 other on the same axis every round:
 
-- **Company and Market** grow your Power fastest but leave you exposed
-  (cash and company value both count toward what an attacker can
-  capture).
-- **Real Estate** grows slower but is the only thing a takeover can never
-  touch, and it's what actually keeps you safe once the Conflict Phase
-  opens.
-- **Loans** let you do more of either, at the cost of interest that gets
+- **Company and Market** grow your Power fastest but leave you exposed:
+  cash and Company value both count toward what an attacker can
+  capture, and both swing with that round's scenario.
+- **Real Estate** grows slower and isn't free to buy or sell, but it's
+  the asset that actually keeps you hard to beat, weighted heavily in
+  defense, even though it's no longer fully untouchable if an attack
+  does land.
+- **Gold** doesn't grow fast either direction; it exists to flatten out
+  the swings a bad scenario roll can cause elsewhere.
+- **Loans** let you do more of any of the above, at a cost that gets
   worse the more you lean on it, and real bankruptcy risk if you
-  overextend.
-- **Joint Ventures** boost your return past what you could get solo, but
-  hand your partner a real chance to drain the pot and keep the majority.
+  overextend. A Bank deposit is the flat, safe alternative to letting
+  cash sit idle.
+- **Joint Ventures** let you bet bigger in an Industry than you could
+  solo, at the cost of a real, visible betrayal risk from your partner.
 
-A player who stays 100% liquid in Company and Market grows the fastest on
-paper but is the easiest target the moment the Conflict Phase opens. A
-player who moves heavily into Real Estate early is safe but grows slower
-and has less capital to attack with later. Reading which posture fits a
-given round, based on what phase you're in and what the table looks like,
-is the actual game.
+A player who stays fully liquid in Company and the Market grows fastest
+on paper but is the easiest target once the Conflict Phase opens, and
+the most exposed to a bad scenario roll. A player who moves heavily into
+Real Estate and Gold early is harder to beat but grows slower and has
+less capital to attack with later. Reading which posture fits a given
+round, based on what phase you're in, what's just been revealed about
+the table, and which scenario just landed, is the actual game.
