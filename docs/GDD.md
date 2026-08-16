@@ -170,9 +170,23 @@ part of the game.
    lends directly to another at a rate above the Bank's, in exchange for
    real counterparty risk, the lender eats it if the borrower defaults) is
    designed but not yet simulated - see BALANCE_TESTING.md Part 5.
+   **The Bank also pays interest on deposits**, not just charging on
+   loans: park Cash above a small working-cash floor with the Bank and
+   earn a modest, safe 4%/round, deliberately below every active option
+   (Company, Real Estate, a Joint Venture, even the Bank's own cheapest
+   loan rate), so it beats doing nothing without ever being smarter than
+   actually investing. Built directly to answer why idle cash should have
+   any legitimate use besides eroding to inflation (step 7 above) or being
+   spent outright - simulation-tested, see BALANCE_TESTING.md Part 12.
 5. **Joint Ventures** - team up with an ally, pool money for a return
    neither gets solo, but they can drain it early and keep the majority
-   (65/35 split, simulation-tested - see BALANCE_TESTING.md Part 1).
+   (65/35 split, simulation-tested - see BALANCE_TESTING.md Part 1). The
+   stake scales with what both partners actually have (30% of whichever
+   holds less Cash, not a fixed amount) and its growth carries real,
+   bidirectional market risk on top of the base rate, tied to that round's
+   Industries scenario when that system is active, so a JV can genuinely
+   lose money, not just a guaranteed return everyone should always take
+   (see Section 7's full walkthrough, and BALANCE_TESTING.md Part 12).
    Reputation has real teeth: two proven betrayals and you lose access to
    easy income and get worse terms on anything you still manage to form.
    **Two allies at a time, max.** Not a limit anyone had actually decided
@@ -254,13 +268,34 @@ without touching the mechanic itself):
 stay flat that round. Exact percentages not yet set, needs a balance pass
 once this is built (see below).
 
-**Not yet built or simulated.** This is a genuine pivot away from the
-long/short-on-a-rival mechanic validated earlier in `BALANCE_TESTING.md`
-(Parts 6, 7, and 9), not an addition alongside it, so those specific
-numbers no longer apply once this replaces it. Needs: the scenario pool
-built out further (a real market-research pass on the economic logic,
-per-industry multiplier sizing, wiring into `sim/human_sim.py`, and a full
-balance retest against everything else already validated this session.
+**Built and simulation-tested, see `BALANCE_TESTING.md` Part 12.** This
+was a genuine pivot away from the long/short-on-a-rival mechanic validated
+earlier (Parts 6, 7, and 9), not an addition alongside it, those specific
+numbers no longer apply, this replaced them. `↑↑`/`↓↓` are +/-8% to that
+round's Company income for an affected industry, `↑`/`↓` are +/-4%.
+
+Directly answers the exact complaint that prompted it: a player who always
+reinvests 90% of new cash into Company for the whole Building Phase (the
+"solved formula") used to land on the *exact same* final Company value
+every single game (155.74, zero variance, 500 trials). With Industries on,
+the same fixed strategy now lands anywhere from 129.89 to 183.74 depending
+purely on which scenarios got drawn, a real spread the player doesn't
+control just by playing "correctly." Full-game balance holds up too, still
+clean by this file's standing bar with Industries active alongside Joint
+Ventures and Bank deposits (Part 12): Socialite still wins most games, no
+archetype crosses 50%, and for the first time in this project's testing
+history a third archetype (Diversifier) takes a real share of wins (7.2%),
+evidence Industries opens a genuine new path to winning rather than just
+adding noise.
+
+One property worth naming honestly: the twenty scenarios above aren't
+perfectly symmetric (35 individual industry effects are positive, summing
+to +1.72, versus 21 negative, summing to -1.16), so Company income and
+anything tied to it (Joint Ventures, below) run slightly above a neutral
+average over many rounds. This mirrors real economic history, expansions
+outnumber contractions, and isn't treated as a bug, but a future balance
+pass could tighten it if games start trending too far upward across many
+rounds.
 
 ## 6. Combat: attacking and defending
 
@@ -384,32 +419,48 @@ Defense Pacts work completely differently here:
   active (Section 6), a temporary borrowed weight in one formula, not a
   transfer of anything. When the pact ends, that weight just stops being
   added. No asset ever changed hands, so there's nothing to distribute.
-- **A Joint Venture pools a separate, distinct pot**, only the specific
-  amount each partner contributed (10 each by default), which grows
-  together while both hold. That pot exists apart from either partner's
-  individual Cash the whole time it's active. When it resolves, whatever
-  the pot is worth gets split and paid back into each partner's *own* Cash.
+- **A Joint Venture is a repeating one-round transaction, not a
+  persistent, multi-round pot.** Nothing sits untouched waiting to be
+  drained. Each round both partners still hold the alliance, both commit a
+  fresh stake out of their own Cash, that round's pot grows or shrinks
+  immediately, and it's split and paid straight back into each partner's
+  *own* Cash before the round ends. The betrayal decision happens fresh
+  every single round the alliance is active, not once at some deferred
+  resolution point.
+- **The stake scales with wealth.** Each partner puts in 30% of whichever
+  of the two has less Cash that round (floored at 5, the old fixed amount),
+  so a JV stays worth forming as both partners get richer instead of
+  shrinking into a rounding error, updated directly in response to that
+  being too trivial a return once the game's numbers grew
+  (BALANCE_TESTING.md Part 12).
 
 **The backstab process, step by step** (Section 5's 65/35 split, in full):
-1. Two players agree to a JV, each puts in a fixed stake (10 each) into the
-   shared pot. That stake leaves their own Cash the moment they commit.
-2. Each round the JV stays open, the pot grows (12%/round) while it isn't
-   touched.
-3. Each round, both partners privately decide, same simultaneous-secret-move
+1. Two players agree to a JV (Section 5). It stays active every round from
+   then on, until one side ends it.
+2. Each round it's active, both partners commit a fresh stake, 30% of
+   whichever partner has less Cash that round, floored at 5, taken
+   directly from their own Cash.
+3. That round's combined pot grows or shrinks by a base 12%, plus real
+   market risk: tied to that round's Industries scenario if that system is
+   on (amplified, since a JV concentrates money in one bet, riskier than a
+   diversified core business), or a standalone random swing if not. This
+   can lose money, not just grow more slowly, a JV is a real bet, not a
+   guaranteed return (BALANCE_TESTING.md Part 12).
+4. Same round, both partners privately decide, same simultaneous-secret-move
    timing as everything else (Section 4's step 2): keep holding, or drain.
-4. **If one drains while the other holds**: the JV ends immediately. The
-   drainer's Cash goes up by 65% of the current pot; the partner who kept
-   holding gets the remaining 35%, added to their own Cash. That's the
-   whole betrayal, a single round's resolution, not a process that plays
-   out over time.
-5. **If both drain the same round**: a smaller, even split (40% each)
+5. **If one drains while the other holds**: the drainer's Cash goes up by
+   65% of that round's pot; the partner who kept holding gets the
+   remaining 35%, added to their own Cash. That's the whole betrayal, a
+   single round's resolution.
+6. **If both drain the same round**: a smaller, even split (40% each)
    instead, neither one gets the full drainer's cut.
-6. **If both keep holding to the JV's natural end** (or the game ends):
-   even 50/50 split.
-7. A drain is recorded (`drain_count`). Two proven drains triggers the
+7. **If neither drains**: even 50/50 split, and the JV simply continues
+   into next round if the alliance is still active.
+8. A drain is recorded (`drain_count`). Two proven drains triggers the
    reputation tax: no more easy idle income, and worse growth rates on any
    JV that player still manages to form (Section 5, BALANCE_TESTING.md
-   Part 1).
+   Part 1). A drain doesn't have to end the alliance itself, though the
+   partner drained on has every reason to walk away afterward.
 
 Beyond Joint Ventures (which are financial), you can form a **Defense
 Pact**: a promise that if your partner is attacked, you help defend them.
@@ -586,12 +637,26 @@ build, makes losses sting more and wins feel more like *yours* - especially
 for a group of friends playing together.
 
 ## 9. Open risks (named honestly, not yet solved)
-- **Industries and Market Events (Section 5A) are designed but not built
-  or simulated.** A real pivot away from the long/short-on-a-rival Market
-  design that Parts 6, 7, and 9 of BALANCE_TESTING.md already validated,
-  those specific numbers stop applying once this replaces it. Needs the
-  scenario pool built out, per-industry multiplier sizing, implementation
-  in `sim/human_sim.py`, and a full balance retest.
+- ~~Industries and Market Events (Section 5A) are designed but not built
+  or simulated~~ **resolved**: built and simulation-tested (Section 5A,
+  BALANCE_TESTING.md Part 12). Directly fixes the Building Phase "solved
+  formula" complaint: the always-max-Company strategy used to land on the
+  exact same final value every game (zero variance across 500 trials),
+  now spreads across a 54-point range depending on which scenarios get
+  drawn. Full-game balance holds with Industries active alongside the
+  redesigned Joint Ventures and new Bank deposits below, and a third
+  archetype (Diversifier) wins for the first time in this project's
+  testing history.
+- ~~Joint Ventures were a fixed 5-cash, guaranteed ~12%, no real risk~~
+  **resolved**: the stake now scales with both partners' wealth and the
+  pot's growth carries genuine bidirectional market risk (tied to
+  Industries when active, a standalone swing otherwise), a JV can now lose
+  money, not just grow more slowly. See Section 5 item 5, Section 7's
+  walkthrough, and BALANCE_TESTING.md Part 12.
+- ~~Idle cash erosion had no legitimate escape hatch besides spending
+  everything~~ **resolved**: the Bank now pays interest on deposits
+  (Section 5 item 4), a safe, modest, taxed return that beats erosion
+  without ever beating actual investment. See BALANCE_TESTING.md Part 12.
 - ~~Power Cards' 7th card - still undecided~~ **resolved**: The Analyst is
   locked in (Section 8.1). Power Cards as a whole are still unsimulated.
 - ~~Raider/Builder ratio and reveal timing~~ **ratio simulated**: roughly 1

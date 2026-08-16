@@ -1104,3 +1104,176 @@ more-informed table than Power-only visibility will actually produce.
   ratio, untestable until failed attacks can actually happen in the sim.
 - Retesting total-wealth capture at other player counts or in combination
   with all other mechanics from Parts 6-10 active simultaneously.
+
+---
+
+# Part 12 - Industries actually built, Joint Ventures redesigned, Bank deposits added
+
+## Why this exists
+Part 10 hid the Building Phase's length but left the underlying problem
+half-solved: within whatever length gets rolled, "max Company every round"
+was still the exact same formula every game, because Company income was a
+flat, guaranteed 10%. The Industries and Market Events system (GDD.md
+Section 5A) was designed to fix that with real, unpredictable economic
+variance instead of dice, but it only existed as a document, not code, when
+this was pointed out directly. It's now built into `human_sim.py`:
+`assign_industries` gives each player an industry at game start,
+`draw_scenario` picks one of the 20 scenarios each round, and its deltas
+move both a player's own Company income (if their industry is named) and
+Market positions (`track_new_industry_investment`,
+`revalue_industry_positions`), gated behind `INDUSTRY_EVENTS_ENABLED`.
+
+Three more gaps got raised together and are addressed here as a batch:
+Joint Ventures were a fixed 5-cash-per-side transaction that paid out a
+guaranteed ~12% regardless of anything else, a free return with no reason
+not to take every round; idle cash erosion existed with no answer for
+"why only cash, why protect the first 10"; and the Bank only ever lent
+money out, it never paid interest on deposits, so erosion had no legitimate
+escape hatch besides spending everything immediately.
+
+## Building Phase: does "max Company" still solve the game?
+Directly quantified: a player who always reinvests 90% of new cash into
+Company for 5 rounds (the exact "solved formula" strategy), 500 seeded
+trials each:
+
+| Configuration | Mean final Company | Stdev | Spread (max - min) |
+|---|---|---|---|
+| Industries off | 155.74 | 0.00 | 0.00 |
+| **Industries on** | **157.71** | **9.44** | **53.86** |
+
+Off, every trial produces the exact same number, confirming the original
+complaint precisely. On, the same fixed strategy now lands anywhere from
+129.89 to 183.74 depending purely on which scenarios got drawn, a real,
+unpredictable spread the player doesn't control by playing "correctly."
+The formula still exists as a starting heuristic, it no longer has a single
+knowable answer.
+
+## Joint Ventures: scalable stake, real bidirectional risk
+`resolve_jvs_human` no longer takes a fixed 5 cash from each side. The
+stake is now `min(both partners' cash) * JV_CONTRIBUTION_RATE` (30%,
+floored at the old 5), so a JV stays meaningful as both partners get
+richer instead of becoming a rounding error. The pot's growth is no longer
+a flat `JV_GROWTH` (12%): it's `JV_GROWTH + risk_delta`, where
+`risk_delta` comes from the same scenario system that moves Company
+income, averaged across both partners' industries and amplified 2.5x
+(`JV_RISK_AMPLIFIER`), the real-world logic being that a joint venture
+concentrates money in one bet, so it should swing harder than a
+diversified core business. Without Industries on, a standalone random
+swing (`JV_STANDALONE_RISK_RANGE`, +/-15%) keeps the risk real either way,
+so JVs never revert to a guaranteed return even in a game running without
+the Industries system.
+
+Measured growth rate actually paid out, sampled directly from live games:
+
+| Configuration | Min | Max | Mean | % of JVs that lost money |
+|---|---|---|---|---|
+| Standalone risk (Industries off) | -3.0% | +26.8% | 11.5% | 7.7% |
+| Industry-linked risk (Industries on) | -8.0% | +32.0% | 16.9% | 0.4% |
+
+Both ranges now cross zero, a JV can genuinely shrink, not just grow more
+slowly, fixing the "everyone does this and gets a free 12%" complaint.
+Industry-linked risk loses money far less often than standalone risk
+because it requires both partners to be concentrated in industries the
+same scenario hits the same direction, partners in different industries
+are naturally hedged against each other, which is realistic (diversifying
+your JV partner's industry exposure is a real risk-reduction strategy) but
+worth flagging: the scenario table itself is not symmetric (35 positive
+deltas summing to +1.72 vs 21 negative deltas summing to -1.16 across the
+20 scenarios), which is why the industry-linked mean (16.9%) runs above
+the intended-neutral 12% baseline. This mirrors real economic history
+(expansions outnumber contractions) and already existed for Company income
+before this Part, it isn't new here, just more visible once JV risk is
+amplified on top of it. Not treated as a bug. If a future pass wants JVs
+closer to break-even on average, tightening the scenario table's positive
+skew is the lever, not the JV multiplier.
+
+Full-game win distribution, mistakes + raid fatigue harness, 1500 trials:
+
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Baseline (JV redesign active, everything else off) | Socialite 84.2% | 10.9% |
+
+Consistent with every other baseline reading in this file (85.9% in Part
+10, 84.2% here, seed-to-seed noise, not drift), confirming the JV redesign
+alone doesn't disturb the validated anti-snowball margin.
+
+## Idle cash erosion, answered directly
+The mechanic only ever touched `p.cash`, never Company, Real Estate, or
+stocks, because those assets are the ones that exist specifically to beat
+inflation, that's the actual reason a real economy has investment instead
+of everyone holding currency under a mattress. The protected threshold
+(10) was never an erosion-specific carve-out, it's a floor of minimal
+working cash nobody should be taxed for holding, the same idea as a
+tax-free personal allowance. What was genuinely missing, raised directly
+in conversation, was a legitimate reason to hold cash above that floor
+without either spending it or watching it shrink. That's Bank deposits,
+below.
+
+## Bank deposits: the real escape hatch erosion was missing
+`BANK_DEPOSIT_ENABLED`: players can now park cash with the Bank
+(`p.bank_deposit`, `manage_bank_deposits` auto-sweeps anything held above
+`BANK_DEPOSIT_BUFFER`, the same 10-cash floor idle cash erosion protects,
+and draws back down automatically when cash runs short, a person dips into
+savings before reaching for a loan). Deposits earn `BANK_DEPOSIT_RATE`
+(4%/round, `apply_bank_deposit_interest`), deliberately below every active
+option (Company 10%, Real Estate 5%, JV ~12-17%, even the Bank's own loan
+rate starts at 8%) and below the erosion rate's bite (3%/round above the
+floor), so it beats doing nothing without ever being the smart move over
+actually investing. Interest counts toward `round_profit`, so it's taxed
+as income like every other source, not a loophole.
+
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Baseline | Socialite 84.2% | 10.9% |
+| + Bank deposits alone | Socialite 81.3% | 6.9% |
+| + Idle cash erosion alone (no deposit escape hatch) | Socialite 90.5% | 11.0% |
+| + Erosion and deposits together | Socialite 81.3% | 6.9% |
+
+Erosion alone actually *helps* the anti-snowball margin, it disproportionately
+taxes Aggressor, the archetype that hoards idle cash by strategy, so it
+loses more than everyone else. Erosion and deposits together land on the
+exact same numbers as deposits alone, confirmed mechanically: once
+`manage_bank_deposits` sweeps idle cash into the deposit each round before
+`erode_idle_cash` runs, cash rarely sits above the floor long enough to
+erode, deposits fully neutralize erosion's bite for anyone paying
+attention. That's the intended design, not a bug, erosion is a penalty for
+holding cash badly, not a tax broadly imposed on everyone.
+
+Bank deposits alone shift a modest amount of win share toward Aggressor
+(15.0% to 16.8% across configurations), a smaller instance of the same
+archetype-exposure asymmetry noted in Part 6 and Part 9: any mechanic that
+makes idle cash safer or more productive helps whichever archetype already
+sits on the most of it. Not large enough here to break the margin, worth
+watching if a future mechanic pushes the same direction again.
+
+## Everything combined
+| Configuration | Top archetype | Gap |
+|---|---|---|
+| Baseline | Socialite 84.2% | 10.9% |
+| Industries alone | Socialite 76.4% | 7.1% |
+| **Industries + Bank deposits + Idle cash erosion, all together** | **Socialite 64.3%** | **5.3%** |
+
+Still clean by this file's standing bar (leader stays Socialite, no
+archetype crosses 50%, the gap never approaches the 1.1% coin-flip
+fragility that forced the Part 7 fix), but the compression is real, not
+noise: three independent mechanics that each individually inject more
+variance and more viable strategies visibly widen who can compete.
+Diversifier, which won close to 0% of games in every other configuration
+in this file, wins 7.2% here, the first time in this entire testing
+history that a third archetype has taken a real share, a genuinely
+positive sign that Industries is opening a new path to winning rather than
+just adding noise around the existing one.
+
+## What Part 12 doesn't cover
+- Whether `JV_CONTRIBUTION_RATE` (30%) is the right scale, only tested
+  against this bot pod's existing JV-forming behavior (Socialite,
+  Diversifier, Casual), not retuned for it.
+- The scenario table's positive skew (noted above) has not been
+  rebalanced; flagged as a known property, not fixed.
+- `BANK_DEPOSIT_RATE` and `BANK_DEPOSIT_BUFFER` were set from the existing
+  rate ladder (below every active return, matching the loan-rate floor)
+  rather than swept, unlike `PEER_LOAN_LEND_FRACTION` in Part 9.
+  A future pass could sweep these the same way if deposits ever look like
+  they're doing more than the modest, safe job intended.
+- All of Part 12's mechanics against player counts other than 6, and
+  against Parts 6-11's mechanics active at the same time.
