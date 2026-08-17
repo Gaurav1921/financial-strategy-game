@@ -1338,6 +1338,13 @@ Raider are private per-player reveals rather than table-wide ones: the
 group teaching burden for a 7-card system is one card's worth per player,
 not seven cards for everyone.
 
+**A real, usable artifact of this layer**: [`docs/TABLE_REFERENCE.html`](TABLE_REFERENCE.html)
+is a print-and-play reference card, the round loop, rates, combat math,
+and Declare/Audit costs on one shared page, plus all 7 Power Cards laid
+out as individual cut-apart slips meant to be dealt privately, one per
+player, the same private-reveal principle this section argues for, made
+concrete rather than left as a description of intent.
+
 **What this doesn't resolve**:
 - Whether a live host/facilitator narrates this, or the product itself
   (tooltips, modals, a guided first game) does, a real product/UX

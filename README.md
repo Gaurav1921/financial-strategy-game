@@ -1,10 +1,10 @@
 # Hostile Ledger
 
-A web-based financial strategy game for a small group of friends (up to 7)
+A web-based financial strategy game for a small group of friends (3 to 10)
 playing together in one sitting - start to finish in under an hour, like a
 board game night. Everyone builds a company and grows a **Power** score
 built from cash, real estate, stock positions, loans, and captured rivals -
-not just a single net-worth number. The biggest plays (taking over a
+not just a single net-worth number. The biggest plays (a Hostile Bid on a
 rival's company) usually need allies to pull off, some of your allies might
 secretly want you to fail, and every claim anyone makes can be bluffed.
 See [`docs/GDD.md`](docs/GDD.md) for the full design.
@@ -15,9 +15,15 @@ See [`docs/GDD.md`](docs/GDD.md) for the full design.
   - [`GDD.md`](docs/GDD.md) - the full game design: the Power system, the
     Building/Conflict phase structure, all six ways to make money, combat
     rules, Power Cards, and the MVP scope for the first playable version.
+  - [`GAMEPLAY.md`](docs/GAMEPLAY.md) - the practical companion to the GDD:
+    what a player actually sees and does, round by round.
+  - [`TABLE_REFERENCE.html`](docs/TABLE_REFERENCE.html) - a print-and-play
+    reference card for running a live game: the round loop, rates, combat
+    math, and all 7 Power Cards laid out to cut apart and deal privately.
   - [`MARKET_RESEARCH.md`](docs/MARKET_RESEARCH.md) - research into
-    competing games (mobile 4X strategy titles and social-deduction/
-    negotiation games) that shaped the design decisions in the GDD.
+    competing games (mobile 4X strategy titles, social-deduction/
+    negotiation games, and economic-negotiation board games like 18xx and
+    Chinatown) that shaped the design decisions in the GDD.
   - [`BALANCE_TESTING.md`](docs/BALANCE_TESTING.md) - results from the
     simulations used to test and tune the game's numbers before building
     anything, including bugs and exploits that were found and fixed along
@@ -25,6 +31,10 @@ See [`docs/GDD.md`](docs/GDD.md) for the full design.
   - [`ENVIRONMENT_SETUP.md`](docs/ENVIRONMENT_SETUP.md) - how the Python
     dev environment is created and auto-initialized when opening this
     project in VS Code.
+- **`sim/`** - the Python simulations behind every finding in
+  `BALANCE_TESTING.md`: `power_simulation.py` (the original 6-archetype
+  bot pod) and `human_sim.py` (the human-shaped extension, mistakes,
+  Power Cards, Hidden Raiders, and everything else validated since).
 - **`backend/`** - Python + FastAPI backend, structured as an `app/`
   package per `CLAUDE.md`'s conventions. Currently a minimal scaffold
   (`app/main.py` with a health-check endpoint); this is where round

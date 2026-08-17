@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hostile Ledger Table Reference</title>
+<style>
+  :root {
+    --paper: #F2F0E6;
+    --paper-raised: #FFFFFF;
+    --ink: #1B2436;
+    --ink-soft: #57617A;
+    --line: #D9D4C4;
+    --accent: #A8792E;
+    --accent-soft: #EEE0C4;
+    --debit: #8B3A3A;
+    --debit-soft: #EFDBD8;
+    --credit: #3C6B4A;
+    --credit-soft: #DCE8DE;
+    --shadow: 0 1px 0 rgba(27,36,54,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14171F;
+      --paper-raised: #1B1F2A;
+      --ink: #E9E7DD;
+      --ink-soft: #9DA5B8;
+      --line: #333A4A;
+      --accent: #D6AC5C;
+      --accent-soft: #3A311E;
+      --debit: #DB8D85;
+      --debit-soft: #3A2320;
+      --credit: #8FC79F;
+      --credit-soft: #1F2E24;
+      --shadow: 0 1px 0 rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #14171F;
+    --paper-raised: #1B1F2A;
+    --ink: #E9E7DD;
+    --ink-soft: #9DA5B8;
+    --line: #333A4A;
+    --accent: #D6AC5C;
+    --accent-soft: #3A311E;
+    --debit: #DB8D85;
+    --debit-soft: #3A2320;
+    --credit: #8FC79F;
+    --credit-soft: #1F2E24;
+    --shadow: 0 1px 0 rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Seravek", "Gill Sans Nova", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .serif {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  }
+  .mono {
+    font-family: ui-monospace, "Cambria Math", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  a { color: var(--accent); }
+
+  header.masthead {
+    background: var(--paper-raised);
+    border-bottom: 2px solid var(--ink);
+    padding: 2.6rem 1.5rem 1.8rem;
+  }
+  .masthead-inner { max-width: 760px; margin: 0 auto; }
+  .eyebrow {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.7rem;
+  }
+  h1.title {
+    font-size: clamp(1.9rem, 5.5vw, 2.6rem);
+    line-height: 1.05;
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .subtitle { color: var(--ink-soft); max-width: 58ch; margin: 0; font-size: 1rem; }
+
+  main { max-width: 760px; margin: 0 auto; padding: 2.2rem 1.5rem 4rem; }
+
+  section.card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 1.5rem 1.6rem;
+    margin-bottom: 1.4rem;
+  }
+
+  h2 {
+    font-size: 0.98rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 0.5rem;
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  h2 .step-label {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  p { margin: 0 0 0.85rem; }
+  section.card > p:last-child, section.card > *:last-child { margin-bottom: 0; }
+
+  ul.plain { margin: 0 0 0.85rem; padding-left: 1.15rem; }
+  ul.plain li { margin-bottom: 0.4rem; }
+  ul.plain li:last-child { margin-bottom: 0; }
+
+  table.ref {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin-bottom: 0.85rem;
+  }
+  table.ref:last-child { margin-bottom: 0; }
+  table.ref th {
+    text-align: left;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    padding: 0 0.6rem 0.45rem 0;
+  }
+  table.ref td {
+    border-bottom: 1px solid var(--line);
+    padding: 0.55rem 0.6rem 0.55rem 0;
+    vertical-align: top;
+  }
+  table.ref tr:last-child td { border-bottom: none; }
+  table.ref td.num { font-family: ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.42rem;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+  .tag-debit { background: var(--debit-soft); color: var(--debit); }
+  .tag-credit { background: var(--credit-soft); color: var(--credit); }
+  .tag-accent { background: var(--accent-soft); color: var(--accent); }
+
+  .setup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 0.85rem;
+  }
+  .setup-stat { background: var(--paper-raised); padding: 0.7rem 0.8rem; }
+  .setup-stat .v { font-family: ui-monospace, Consolas, monospace; font-size: 1.15rem; font-weight: 700; display: block; }
+  .setup-stat .l { font-size: 0.68rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .loop-steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+  .loop-steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0.5rem 0 0.5rem 2.2rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.94rem;
+  }
+  .loop-steps li:last-child { border-bottom: none; padding-bottom: 0; }
+  .loop-steps li:first-child { padding-top: 0; }
+  .loop-steps li::before {
+    counter-content: counter(step);
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    font-family: ui-monospace, Consolas, monospace;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .loop-steps b { color: var(--ink); }
+  .loop-steps span { color: var(--ink-soft); }
+
+  .formula-box {
+    background: var(--accent-soft);
+    border: 1px dashed var(--accent);
+    padding: 0.85rem 1rem;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.88rem;
+    margin-bottom: 0.85rem;
+    color: var(--ink);
+  }
+  .formula-box .k { color: var(--ink-soft); }
+
+  footer {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+  }
+
+  /* --- Power Cards section --- */
+  section.cards-section h2 { margin-bottom: 0.4rem; }
+  .cards-intro { color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.3rem; }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .power-card {
+    background: var(--paper-raised);
+    border: 1.5px dashed var(--ink-soft);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    position: relative;
+  }
+  .power-card::before {
+    content: "✂ cut here";
+    position: absolute;
+    top: -0.62rem;
+    left: 0.9rem;
+    background: var(--paper);
+    color: var(--ink-soft);
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    padding: 0 0.4rem;
+  }
+  .power-card h3 {
+    font-size: 1.05rem;
+    margin: 0.2rem 0 0.7rem;
+    font-weight: 700;
+    color: var(--ink);
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  }
+  .power-card .half { margin-bottom: 0.65rem; }
+  .power-card .half:last-child { margin-bottom: 0; }
+  .power-card .half-label {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  .power-card p { font-size: 0.87rem; color: var(--ink-soft); margin: 0; }
+
+  @media print {
+    body { background: #fff; }
+    section.card, .power-card { box-shadow: none; break-inside: avoid; }
+    header.masthead { border-bottom-color: #000; }
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 640px) {
+    .setup-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="eyebrow">Table Reference &middot; Print &amp; Play</p>
+    <h1 class="title serif">Hostile Ledger</h1>
+    <p class="subtitle">Everything a table needs in view during a live game. Keep this
+      page visible throughout. The Power Cards section at the bottom is meant to be
+      cut apart and dealt privately, one card per player, not read by the whole table.</p>
+  </div>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>Setup</h2>
+    <div class="setup-grid">
+      <div class="setup-stat"><span class="v">20</span><span class="l">Cash</span></div>
+      <div class="setup-stat"><span class="v">80</span><span class="l">Company</span></div>
+      <div class="setup-stat"><span class="v">0</span><span class="l">Real Estate</span></div>
+      <div class="setup-stat"><span class="v">0</span><span class="l">Gold</span></div>
+      <div class="setup-stat"><span class="v">0</span><span class="l">Debt</span></div>
+      <div class="setup-stat"><span class="v">100</span><span class="l">Power</span></div>
+    </div>
+    <p>Everyone starts identical. Pick a company name, an icon, and one <b>Industry</b>.
+      A minority of the table is secretly a <b>Raider</b> &mdash; everyone still starts
+      at 100 Power either way. <b>15 rounds</b> total: a <b>Building Phase</b>
+      (4&ndash;6 rounds, length hidden, no Hostile Bids) then the <b>Conflict Phase</b>
+      (Hostile Bids open) through <b>Round 15, the Final Round</b>, which plays by
+      different rules &mdash; expect honest play to end there.</p>
+  </section>
+
+  <section class="card">
+    <h2>The Round Loop <span class="step-label">every round, same 8 steps</span></h2>
+    <ol class="loop-steps">
+      <li><b>Income</b> <span>&mdash; Company, Real Estate, Gold, Market positions pay out automatically.</span></li>
+      <li><b>Allocate</b> <span>&mdash; the one real decision: Company, Real Estate, Gold, the Market, a Bank deposit, a loan paydown, or hold cash.</span></li>
+      <li><b>Alliances</b> <span>&mdash; propose or accept a Joint Venture; existing ones resolve.</span></li>
+      <li><b>Loans</b> <span>&mdash; borrow if you want, Bank capacity permitting; peer loans settle.</span></li>
+      <li><b>Combat</b> <span>&mdash; Hostile Bids and "gang up on the leader" counter-attacks (Conflict Phase only).</span></li>
+      <li><b>The Market re-prices</b> <span>&mdash; Industry positions revalue against this round's scenario.</span></li>
+      <li><b>Taxes &amp; upkeep</b> <span>&mdash; if enabled: income tax, Real Estate liquidation, idle cash erosion.</span></li>
+      <li><b>Round ends</b> <span>&mdash; move to the next.</span></li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Round Timer</h2>
+    <p><b>3 minutes per round</b>, ending early the moment everyone signals ready.
+      Miss the timer and your round <b>holds</b>: your split repeats exactly what you
+      did last round, nothing new goes out on your behalf. Miss a round entirely and
+      look genuinely gone? Any other player can call a vote after your first miss;
+      a majority of the table's other active players sends you to the
+      <b>Board Observer</b> track &mdash; your holdings freeze exactly where they were,
+      but stay completely real and fully attackable. Reconnect and you're straight
+      back in, no re-vote needed.</p>
+  </section>
+
+  <section class="card">
+    <h2>Rates &amp; Costs</h2>
+    <table class="ref">
+      <thead><tr><th>Source</th><th>Rate</th></tr></thead>
+      <tbody>
+        <tr><td>Company income</td><td class="num">10%/round <span class="tag tag-accent">+/- Industry scenario</span></td></tr>
+        <tr><td>Real Estate income</td><td class="num">5%/round <span class="tag tag-accent">+/- half of Property scenario</span></td></tr>
+        <tr><td>Gold</td><td class="num">0.5&ndash;3.5%/round <span class="tag tag-credit">crisis kicker</span></td></tr>
+        <tr><td>Bank deposit interest</td><td class="num">4%/round <span class="tag tag-credit">flat, safe</span></td></tr>
+        <tr><td>Bank loan</td><td class="num">8% + 35% &times; leverage <span class="tag tag-debit">rises with debt</span></td></tr>
+        <tr><td>Peer-to-peer loan</td><td class="num">20%/round flat</td></tr>
+      </tbody>
+    </table>
+    <table class="ref">
+      <thead><tr><th>Action</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Buying Real Estate</td><td class="num">3% closing cost</td></tr>
+        <tr><td>Liquidating Real Estate</td><td class="num">15% haircut</td></tr>
+        <tr><td>Liquidating Gold (forced)</td><td class="num">5% haircut</td></tr>
+        <tr><td>Bankruptcy</td><td class="num">creditors seize 85%</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>What You Can See</h2>
+    <p><b>Only Power is shown, exactly, always.</b> Everything else &mdash; cash,
+      Company, Real Estate, Gold, debt, exact attack or defense strength &mdash; is
+      unknown unless it goes through a <b>Declaration</b> (a claim about your own
+      position) that <b>anyone can Audit</b>.</p>
+    <table class="ref">
+      <tbody>
+        <tr><td>Audit cost</td><td class="num">5 cash, paid by the auditor</td></tr>
+        <tr><td>Claim was true</td><td class="num"><span class="tag tag-credit">auditor's 5 cash</span> goes to the claimant</td></tr>
+        <tr><td>Claim was a lie, caught</td><td class="num"><span class="tag tag-debit">~15% of the liar's Power</span>, docked on the spot; effect voided; auditor refunded</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Combat</h2>
+    <div class="formula-box">
+      <span class="k">Attack power</span> = your cash &times; a portion, plus allies backing you<br>
+      <span class="k">Defense</span> = Real Estate &times;0.9 + Gold &times;0.6 + cash &times;0.3, plus declared allies' cash &times;0.3
+    </div>
+    <ul class="plain">
+      <li>Ties favor the defender (defense counts at &times;1.05).</li>
+      <li><b>Hostile Bid</b> (Conflict Phase only): on success, captures 25% of the
+        target's <i>total</i> wealth &mdash; cash, then Company, then Real Estate,
+        then Gold. Target keeps their company and returns behind a
+        <b>2-round Post-Bid Shield</b>.</li>
+      <li>Failed attack: attacker loses 50% of what they staked, split between the
+        defender and the Bank.</li>
+      <li><b>Gang up on the leader</b>: anyone can pile on once a leader's Power
+        exceeds 1.05&times; second place, not just dedicated attackers.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Alliances</h2>
+    <p><b>Joint Venture</b> (financial): each partner seeds 10 into one Industry,
+      the pot moves with that Industry's real scenario delta every round. Either
+      partner can top up (20% of whichever partner has less cash, floored at 10) or
+      <b>drain</b> early: drainer keeps 65%, partner gets 35% (40/40 if both drain,
+      50/50 if neither). A <b>second</b> proven drain costs the drainer a visible
+      ~15% Power hit on the spot.</p>
+    <p><b>Defense Pact</b> (protective): <b>declared</b> visibly boosts your
+      partner's defense; <b>covert</b> stays hidden until a fight happens. Ending a
+      covert pact is free. Ending a declared pact is free the first time, costs a
+      visible ~15% Power hit the second time, and takes effect starting <i>next</i>
+      round. One JV/Pact partner at a time, two allies max &mdash; it's the same
+      relationship, not two separate slots.</p>
+  </section>
+
+  <section class="cards-section">
+    <h2 style="border:none;padding-bottom:0;">Power Cards &mdash; deal privately, one per player</h2>
+    <p class="cards-intro">Each player secretly holds one of these 7 cards. You only
+      ever need to know your own. Claiming a card's action or block is a
+      Declaration &mdash; anyone can Audit it. Each half (action, block) works once
+      per game.</p>
+    <div class="cards-grid">
+
+      <div class="power-card">
+        <h3>The Financier</h3>
+        <div class="half">
+          <span class="half-label">Action &middot; Capital Raise</span>
+          <p>Any round. Add 20% of your current Company value straight to your Cash.</p>
+        </div>
+        <div class="half">
+          <span class="half-label">Block &middot; Freeze</span>
+          <p>Any round, named target. Zero that target's Company and Real Estate income this round.</p>
+        </div>
+      </div>
+
+      <div class="power-card">
+        <h3>The Marauder</h3>
+        <div class="half">
+          <span class="half-label">Action &middot; Smash and Grab</span>
+          <p>Conflict Phase only. Capture 10% of a named target's total wealth straight to your Cash &mdash; smaller than a full Hostile Bid, no shield triggered.</p>
+        </div>
+      </div>
+
+      <div class="power-card">
+        <h3>The Guardian</h3>
+        <div class="half">
+          <span class="half-label">Block &middot; Bodyguard</span>
+          <p>Conflict Phase only. Fully negate one attack against your own company &mdash; a Hostile Bid, a counter-attack, or a Marauder's hit.</p>
+        </div>
+      </div>
+
+      <div class="power-card">
+        <h3>The Broker</h3>
+        <div class="half">
+          <span class="half-label">Action &middot; Skim</span>
+          <p>Conflict Phase only. Take 8% of a named target's current Cash directly &mdash; a pickpocket, smaller even than a Marauder hit.</p>
+        </div>
+        <div class="half">
+          <span class="half-label">Block &middot; Vault</span>
+          <p>Any round. Fully negate one Skim attempt against you.</p>
+        </div>
+      </div>
+
+      <div class="power-card">
+        <h3>The Banker</h3>
+        <div class="half">
+          <span class="half-label">Action &middot; Easy Terms</span>
+          <p>Any round. Take a Bank loan at the flat 8% base rate, no leverage premium.</p>
+        </div>
+        <div class="half">
+          <span class="half-label">Block &middot; Standstill</span>
+          <p>Any round. Your next interest charge skips the leverage premium, and you can't be denied a loan for lack of Bank capacity.</p>
+        </div>
+      </div>
+
+      <div class="power-card">
+        <h3>The Insider</h3>
+        <div class="half">
+          <span class="half-label">Action &middot; Tip-Off</span>
+          <p>Any round, named target. Privately learn their true Cash, Company, Real Estate, Gold, and Debt. No block exists for this card.</p>
+        </div>
+      </div>
+
+      <div class="power-card">
+        <h3>The Analyst</h3>
+        <div class="half">
+          <span class="half-label">Action &middot; Report or Expose</span>
+          <p>Any round, named target, pick one: <b>Report</b> shifts their visible defense +/-15% for the round, or <b>Expose</b> reveals their Market positions to the table.</p>
+        </div>
+        <div class="half">
+          <span class="half-label">Block &middot; Countermeasure</span>
+          <p>Any round. Fully negate a Report or Expose aimed at you.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Numbers match <code>sim/human_sim.py</code> and <code>GDD.md</code> as of
+  BALANCE_TESTING.md Part 25. If a rule here and the GDD ever disagree, the GDD wins.
+</footer>
+
+</body>
+</html>
