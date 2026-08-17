@@ -5,7 +5,9 @@ mechanic exists and how it was validated; this doc explains what a player
 actually sees and does, round by round, starting from Round 1. Numbers
 here match the current simulation constants in `sim/human_sim.py` and
 `sim/power_simulation.py`, the source of truth for anything not yet built
-in `backend/`. The game's working title is **Hostile Ledger**.
+in `backend/`. The game's working title is **Hostile Ledger**. For a
+one-page print-and-play version of everything below, see
+[`docs/TABLE_REFERENCE.html`](TABLE_REFERENCE.html).
 
 **Player count: 3 to 10.** An earlier version of this game excluded 3-4
 players entirely, based on a test that turned out to be measuring a biased
@@ -86,8 +88,8 @@ ceiling most rounds won't actually hit, not the expected pace.
 
 **If your timer runs out before you act**, your round defaults to a
 hold: your new income splits exactly the way last round's did. No new
-Joint Venture forms, no Power Card claim goes out, no Audit gets called
-on your behalf, a true hold, not someone else deciding for you.
+Joint Venture forms, no Power Card claim goes out (Section 9), no Audit
+gets called on your behalf, a true hold, not someone else deciding for you.
 
 **If you miss a round entirely and look genuinely gone**, any other
 active player can call a vote to remove you, once you've missed at
@@ -225,7 +227,7 @@ either partner could bet alone) and real betrayal risk.
   visibly: an immediate ~15% hit to their own current total Power,
   docked the instant it's confirmed.
 
-A JV partnership and a Defense Pact (Section 5) currently share the same
+A JV partnership and a Defense Pact (Section 7) currently share the same
 relationship: allying with someone covers both at once, and the two-ally
 cap applies to that combined relationship, not to each separately.
 
@@ -256,7 +258,7 @@ Power in their assigned Industry, is choosing among:
 - Put a small amount into Gold as a hedge against a bad scenario roll
   later.
 - Do nothing financially aggressive and instead start quietly forming a
-  Defense Pact (Section 5) for later, since alliances can form well
+  Defense Pact (Section 7) for later, since alliances can form well
   before attacks are possible.
 
 There's no wrong opening move: the Building Phase exists specifically so
@@ -392,7 +394,37 @@ you're wondering whether they're even capable of staying loyal to you at
 all. Reveal timing (never, end of game, or player-triggered) is still
 undecided.
 
-## 9. Putting it together: building wealth vs. building defense
+## 9. Power Cards
+
+At setup, each player is secretly dealt one of **7 Power Cards**, no
+duplicates below 8 players. You only ever need to know your own. Claiming
+your card's action, or its block, is a **Declaration**, just like any
+other claim about your own position (Section 6): anyone can Audit it at
+the standard 5-cash cost, and a bluff caught is penalized the same way any
+other lie is. Each card's action and its block each work **once per
+game**. A move that takes value from someone else without their consent
+is an attack, Conflict Phase only, same as a Hostile Bid; anything that
+only touches your own position, or only reveals information, works any
+round, Building Phase included.
+
+| Card | Action | Block |
+|---|---|---|
+| **The Financier** | Capital Raise: +20% of your Company value, straight to Cash | Freeze: zero a named target's Company and Real Estate income this round |
+| **The Marauder** | Smash and Grab: capture 10% of a named target's total wealth (Conflict Phase, smaller than a full Hostile Bid, no shield triggered) | &mdash; |
+| **The Guardian** | &mdash; | Bodyguard: fully negate one attack against your own company |
+| **The Broker** | Skim: take 8% of a named target's current Cash (Conflict Phase) | Vault: fully negate one Skim attempt against you |
+| **The Banker** | Easy Terms: take a Bank loan this round with no leverage premium | Standstill: your next interest charge skips the leverage premium |
+| **The Insider** | Tip-Off: privately learn a named target's true Cash, Company, Real Estate, Gold, and Debt | &mdash; |
+| **The Analyst** | Report or Expose, pick one: shift a named target's visible defense &plusmn;15% for the round, or reveal their Market positions to the table | Countermeasure: fully negate a Report or Expose aimed at you |
+
+Guardian's block is reactive, not a proactive claim: since nobody can see
+an attack coming the same round it happens (Section 6), it fires at the
+exact moment an attack against you would otherwise land, not before. A
+claim that repeats a move you've already legitimately used this game is
+automatically a lie if you truly hold that card, real texture for a sharp
+Audit read, "you already did that this game."
+
+## 10. Putting it together: building wealth vs. building defense
 
 There's no single correct split. The options trade off against each
 other on the same axis every round:
