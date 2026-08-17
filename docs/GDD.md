@@ -978,17 +978,34 @@ for a group of friends playing together.
   and the naming collision with the Hidden Raider role fixed by renaming
   "The Raider" card to The Marauder), reusing Section 8.3's now-quantified
   Declare/Audit costs and this game's existing percentage vocabulary rather
-  than inventing new numbers. **Still genuinely open**: none of it has a
-  simulated win-rate or balance read yet, this pass was design only, no
-  code. That first simulation pass is the next real step, not a rules
-  question anymore.
+  than inventing new numbers.
+
+  **First simulation pass, done** (BALANCE_TESTING.md Part 18): the full
+  Declare/Audit claim/bluff/audit economy is modeled for all 7 cards, with
+  a real simulated mechanical payoff for the three cards whose action is a
+  clean, unconditional number (Financier, Marauder, Broker). Result:
+  Socialite's win share drops at 6 and 8 players with Power Cards active,
+  and the share goes to Diversifier and Turtle, not to Aggressor, whose
+  share barely moves, the healthy direction, adding real variance without
+  feeding the one archetype every other finding in this file has had to
+  watch. **Still open**: the other four cards' actual payoffs (Guardian's
+  block, Banker's terms, Insider's and Analyst's information) aren't
+  simulated yet, and this pass uses flat claim/bluff/audit probabilities,
+  not real strategic bluffing, a sharper version of the "bots aren't
+  adaptive humans" caveat every trait-based mechanic in this file carries.
 - ~~Raider/Builder ratio and reveal timing~~ **ratio simulated**: roughly 1
   Raider per 5-6 players, 14.9% Raider success rate, no measurable effect
   on Builder balance (see Section 8.2). **Reveal timing is still open.**
-- **Onboarding**: teaching Power (not just cash), the two phases, allies
+- ~~Onboarding: teaching Power (not just cash), the two phases, allies
   not being mandatory, and the final round being different - a lot to land
-  in one sitting with a first-time group. Probably needs a guided first
-  few rounds rather than a rules dump.
+  in one sitting with a first-time group~~ **resolved**: a full
+  just-in-time teaching sequence (Section 13), governed by one rule, teach
+  a system only the moment a specific player is about to use it, not
+  before. Cuts Power Cards' and Hidden Raider's group teaching burden
+  specifically, since both become private, per-player reveals instead of
+  table-wide ones. Not tested, the same caveat as everything else in this
+  file: only real playtesting can confirm a teaching sequence actually
+  lands.
 - ~~Round count doesn't scale with player count, and the anti-snowball
   margin has only ever been validated against the six-player pod~~
   **partially resolved**: every mechanic added since Part 7's margin fix
@@ -1046,12 +1063,16 @@ for a group of friends playing together.
   games even under the mistakes fragility (Aggressor down to 13.3%, still
   a viable if underdog strategy, not eliminated). See BALANCE_TESTING.md
   Part 7.
-- **A "fear after being hit" reaction was deliberately not modeled.**
-  Multiple attempts to simulate a player playing scared and defensive for a
-  few rounds after a takeover all backfired in archetype-specific ways
-  (see BALANCE_TESTING.md Part 3). Real psychological reaction to being
-  attacked is probably a real design factor, but needs a dedicated,
-  archetype-aware modeling pass, not a bolt-on trait.
+- ~~A "fear after being hit" reaction was deliberately not modeled~~
+  **resolved**: three attempts backfired in archetype-specific ways
+  (BALANCE_TESTING.md Part 3) because each one redirected new investment
+  into a specific bucket (Real Estate, a free defense boost; cash, free
+  reinforcement for Aggressor's own base strategy). A fourth attempt
+  doesn't redirect at all: a hit player simply deploys less of their new
+  investment for 2 rounds, the rest sits as plain, unenhanced idle cash,
+  and Aggressor/Leverager are exempt outright rather than hoped to be
+  unaffected. Clean in testing, Aggressor's win share moves within noise,
+  no archetype spikes. See BALANCE_TESTING.md Part 19.
 - ~~What an eliminated player does for the rest of a live session~~
   **resolved**: Board Observers can now be recruited as a Co-Founder,
   redirecting a real slice of the host's income every round in exchange for
@@ -1154,3 +1175,92 @@ for a group of friends playing together.
   much better than trying to monetize each participant individually.
 - No pay-to-win: Takeovers, Joint Ventures, and Power Cards only stay
   meaningful if outcomes can't be bought.
+
+## 13. Onboarding: what's taught when, not a rules dump
+
+Section 9 has flagged this as open since Draft 1: teaching Power, two
+phases, Industries, Loans, Joint Ventures, Declare/Audit, Defense Pacts,
+Power Cards, Co-Founder, and a hidden minority role is too much to hand a
+first-time group in one sitting. MARKET_RESEARCH.md's own finding is
+direct about why this matters more than it might seem: D1-D30 drop-off
+from onboarding overload is the single biggest structural churn risk in
+this genre, bigger than any balance question. The fix isn't shrinking the
+ruleset (every mechanic in this file earned its place through real
+testing), it's **never teaching more than what's needed for the decision
+directly in front of a player, right when it becomes relevant.** A total
+ruleset can be large as long as no single moment ever demands more than
+2-3 new ideas at once.
+
+**Layer 0, before Round 1 (2-3 minutes, the only mandatory upfront
+teaching):**
+- The one-sentence pitch: grow your Power, don't get caught undefended.
+- Starting position: 20 cash, 80 Company, 100 Power, identical for
+  everyone.
+- Five things you can do with new cash this round: grow your Company, buy
+  Real Estate, bet on an Industry, deal with the Bank (borrow or deposit),
+  or team up with someone (a Joint Venture). Named, not explained in full,
+  each gets its full rules the first time a player actually reaches for
+  it (Layer 2).
+- One line on phase and visibility, no more: "no attacks yet, this part
+  is just building," and "only Power is shown on the leaderboard, nothing
+  else." Not *why* yet, not the hidden Building Phase length, not the
+  endgame. Curiosity about "why" is fine to answer if asked, never forced
+  on everyone up front.
+
+**Layer 1, Round 1 itself, narrated live as it happens:** income resolves
+automatically, call it out ("your Company just paid you X"); Allocate is
+the one real decision every round, give the table real time on it the
+first time; if a scenario draws, read the flavor text exactly as written
+and walk through one concrete example ("this hurts Consumer Retail, if
+that's your Industry, expect a worse round than usual").
+
+**Layer 2, just-in-time, one new system exactly when it becomes a live
+decision, not before:**
+- **Joint Ventures**: full drain/reputation rules explained only to the
+  two players actually forming one, the moment they try, plus a single
+  table-wide heads-up the first time it happens ("a JV is a real
+  financial bet, either partner can walk away with more than their
+  share"). Not explained to anyone who never reaches for it.
+- **Loans**: the leverage-based rate explained the first time any player
+  actually takes one, not before.
+- **Board Observer / Co-Founder / backing**: explained to a player the
+  moment they actually go broke for the first time, the exact moment it
+  stops being abstract and starts being their situation.
+- **Combat, Declare/Audit, and Defense Pacts**: held entirely until the
+  Conflict Phase actually opens (whenever the hidden Building Phase length
+  ends), one single "the game just changed" beat instead of scattered
+  earlier explanation nobody can act on yet. Before this moment, players
+  only need Layer 0's one-liner that attacks exist eventually.
+- **Power Cards**: each player privately learns only *their own* card's
+  action and block, a private reference, not a table-wide 7-card rules
+  dump, reusing the Declare/Audit rule already just taught at Conflict
+  Phase open so a card claim doesn't need its own separate explanation of
+  how a Declaration resolves. This alone cuts the table-wide teaching
+  burden for this system by roughly six-sevenths.
+- **Hidden Raider**: revealed privately to Raiders only, at game start (a
+  private note, not a table announcement). Builders get exactly one line
+  during Layer 0 ("a minority of the table might secretly want someone
+  else to fail") and nothing more, acting on that uncertainty *is* the
+  game, more detail would just be spoiling it.
+- **The Final Round**: announced explicitly as "this is the last round,
+  it plays differently" the moment it starts, matching the existing
+  design intent (Section 8.5) that endgame defection should be telegraphed
+  outright rather than discovered the hard way.
+
+**Why this ordering, not another one:** Layer 2's governing rule, teach a
+system only at the exact moment a specific player is about to use it, is
+what keeps the total amount ever explained at once small, regardless of
+how large the full ruleset grows. It's also why Power Cards and Hidden
+Raider are private per-player reveals rather than table-wide ones: the
+group teaching burden for a 7-card system is one card's worth per player,
+not seven cards for everyone.
+
+**What this doesn't resolve**:
+- Whether a live host/facilitator narrates this, or the product itself
+  (tooltips, modals, a guided first game) does, a real product/UX
+  decision, not made here.
+- The exact wording of each just-in-time explanation, a content pass, not
+  attempted here.
+- Not tested. The same caveat as everything else in this file applies at
+  full force here: bots can't validate whether a teaching sequence
+  actually lands with a first-time human group, only real playtesting can.

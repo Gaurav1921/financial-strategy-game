@@ -1844,3 +1844,190 @@ one, the numbers just took the guesswork out of it:
   swept here, the same scope limit Part 16 already named.
 - Human playtesting at any player count, still zero, still the top
   blocker this file cannot resolve on its own.
+
+---
+
+# Part 18 - Power Cards, first simulation pass
+
+## Why this exists
+GDD.md Section 8.1 got exact, numbered mechanics for all 7 cards in the
+previous design pass, but nothing had been simulated: bluffing is
+genuinely hard to model meaningfully, the same "separate piece of work"
+caveat this section has carried since Part 2. This is that first pass,
+scoped the same way Hidden Raider's first pass was (Part 9): real
+claim/bluff/audit dynamics and their real cost, not a fully faithful
+implementation of every card's distinct flavor.
+
+## Scope, honestly bounded
+`resolve_power_card_claims` models the full Declare/Audit economy (a claim,
+a chance of being audited, the exact cost/penalty asymmetry Section 8.3
+specifies) for all 7 card names, but only three cards get a simulated
+mechanical payoff when a claim resolves: **Financier** (Capital Raise, 20%
+of current Company value to Cash), **Marauder** (Smash and Grab, 10% of
+the richest available target's total wealth, Conflict Phase only), and
+**Broker** (Skim, 8% of the richest-in-cash target's Cash, Conflict Phase
+only). These three share one property the other four don't: a clean,
+unconditional number that doesn't depend on context a fixed-behavior bot
+can't reason about. **Not modeled this pass**: Guardian and the other
+cards' block halves (reactive, need to be threaded into combat resolution
+order, a real follow-up); Banker's benefit (conditional on actually
+wanting a loan that round); Insider's and Analyst's payoff (information a
+bot has no way to act on, since none of these archetypes have a
+belief-updating layer). Those four are still claimed and auditable,
+contributing real bluff/audit texture and real cost, just no separate
+Power effect yet.
+
+**Bot behavior**: each player with an unused real card action has a flat
+15%/round chance of attempting it (once, ever, per the once-per-game
+design), and a separate flat 5%/round chance of attempting exactly one
+bluffed claim of a card they don't hold, matching the plain-probability
+approach `sim/human_sim.py` already uses for `declare_bias` elsewhere.
+This is not real strategic bluffing (timing a bluff for when it's least
+likely to be caught, reading who's suspicious), the same honesty caveat
+every trait in this file carries about the gap between fixed bots and
+adaptive humans, doubled for a mechanic whose entire point is reading
+people. Any claim is audited by a random other living player 25% of the
+time.
+
+## Result
+Full current configuration (every mechanic Parts 1-17 recommend, mistakes
++ raid fatigue active), 1500 trials, Power Cards off vs. on:
+
+| Players | Top archetype (off) | Top archetype (on) | Gap% (off -> on) | Winner variety (off -> on) |
+|---|---|---|---|---|
+| 3 | Socialite 35.5% | Socialite 35.6% | 16.9% -> 17.7% | 6 -> 6 |
+| 6 | Socialite 79.7% | Socialite 71.4% | 11.8% -> 11.9% | 5 -> 5 |
+| 8 | Socialite 68.3% | Socialite 54.3% | 8.7% -> 9.3% | 6 -> 8 |
+
+Full breakdown at 6 and 8, the two counts where Power Cards move the
+needle at all:
+
+| Players | Without Power Cards | With Power Cards |
+|---|---|---|
+| 6 | Socialite 79.7%, Diversifier 7.7%, Aggressor 6.7%, Turtle 5.4%, SoloGrinder 0.5% | Socialite 71.4%, Diversifier 11.7%, Turtle 11.7%, Aggressor 4.9%, SoloGrinder 0.3% |
+| 8 | Socialite 68.3%, Prepper 10.7%, Diversifier 9.1%, Turtle 8.3%, SoloGrinder 2.1%, Aggressor 1.5% | Socialite 54.3%, Prepper 15.8%, Diversifier 13.4%, Turtle 13.3%, Aggressor 2.3%, SoloGrinder 0.5%, Speculator 0.3%, Leverager 0.1% |
+
+**The direction this moves in matters more than the size of the move.**
+Socialite's share drops at both 6 and 8 players (a real, double-digit
+shift at 8), but the share goes to Diversifier and Turtle, not to
+Aggressor, whose share barely moves at all (6.7% -> 4.9% at n=6, actually
+1.5% -> 2.3% at n=8, both within noise). Every prior finding in this file
+has had to watch Aggressor specifically, a mechanic that adds variance
+without feeding it is the good outcome, not a coincidence: Marauder and
+Broker's captures land on whoever's richest and beatable regardless of
+archetype, they don't have a built-in bias toward rewarding the already-
+liquid, already-aggressive strategy the way an unguarded new mechanic
+sometimes has (Part 5's windfall tax, Part 6's peer loans, both flagged
+for exactly that failure mode before being fixed). Winner variety improves
+at n=8 (6 -> 8 archetypes, every archetype in the roster wins at least
+once), the same healthy-diversity direction every clean mechanic in this
+file trends toward.
+
+## Activity, and an honest read on how often the interesting part fires
+| Players | Claims/game | Effects resolved/game | Failed audits/game | Lies caught/game | Lie penalties paid/game |
+|---|---|---|---|---|---|
+| 3 | 3.77 | 0.97 | 0.66 | 0.38 | 10.31 |
+| 6 | 7.54 | 2.05 | 1.38 | 0.72 | 19.35 |
+| 8 | 10.08 | 2.75 | 1.78 | 0.97 | 25.23 |
+
+Claims scale roughly with player count, as expected (more players, more
+independent 15%/round rolls). Only about a quarter to a third of claims
+resolve into one of the three modeled effects (the rest are claims of
+Guardian/Banker/Insider/Analyst, correctly contributing cost and audit
+risk with no separate payoff, per this pass's scope), and a real fraction
+get caught outright, roughly 1 in 5 to 1 in 8 claims ends in a confirmed
+lie, a visible, non-trivial Power hit averaging in the double digits per
+game. The Declare/Audit economy is genuinely active, not a mechanic that
+sits there unused, the opposite honesty problem this file has flagged for
+Gold and the defender reward (correctly built, structurally rare to
+trigger). Power Cards fire often enough in this bot pod to be a real,
+felt part of a game, not a theoretical addition.
+
+## What Part 18 doesn't cover
+- The four unmodeled cards' actual mechanical payoffs (Guardian's block,
+  Banker's loan terms, Insider's information, Analyst's Report/Expose),
+  a real follow-up pass, not attempted here.
+- Real strategic bluffing. `POWER_CARD_CLAIM_CHANCE` and
+  `POWER_CARD_BLUFF_CHANCE` are flat probabilities, not a bot that reads
+  the table or picks its moment, the same limitation this file has named
+  for every trait-based mechanic since Part 3, sharper here since bluffing
+  well is specifically a human-reading skill.
+- Whether 15%/5%/25% (claim/bluff/audit chance) are the right numbers,
+  chosen directly, not swept.
+- The 8-player duplicate-card simplification (Part 17's 8th seat repeats
+  one of the 7 types) interacting with anything else, only tested as part
+  of this pass's own n=8 row.
+- Retesting at 4, 5, 7, 9, or 10 players, or against Parts 1-15's
+  individual findings in isolation rather than the full combined
+  configuration.
+
+---
+
+# Part 19 - "Fear after being hit," a fourth attempt, and this one holds up
+
+## Why this exists
+Part 3, Finding 6 tried three versions of a player playing scared and
+defensive after being successfully attacked, and dropped all three: every
+one backfired in an archetype-specific way. Real fear is probably a real
+factor, GDD.md Section 9 has said so since that finding, but it's sat
+untried since, flagged as needing "a properly scoped, archetype-aware
+modeling pass," not a bolt-on trait. This is that pass.
+
+## Why the first three failed, and what's actually different this time
+All three previous attempts shared one property: they redirected new
+investment into a specific bucket.
+1. Divert new company income into Real Estate: handed the affected player
+   a free defense boost, since Real Estate is weighted far more heavily
+   than cash in defense (0.9x vs 0.3x), regardless of which bucket the
+   diverted value came from.
+2. Divert proportionally from company and cash into Real Estate: same
+   problem, worse, more total value ended up in the heavily-weighted
+   bucket.
+3. Freeze into cash instead of Real Estate: for Aggressor specifically,
+   this fed straight into the one resource (liquid cash) that archetype's
+   base strategy already wants to hoard, turning "fear" into free
+   reinforcement instead of a penalty.
+
+**This attempt doesn't redirect anywhere.** `apply_fear_hesitation`
+deploys a flat `FEAR_DEPLOYMENT_FRACTION` (60%) of what a hit player's
+archetype would normally invest this round, for `FEAR_ROUNDS` (2) rounds
+after being successfully taken over or hit by a counter-attack, and the
+clawed-back 40% just sits as ordinary, unenhanced idle cash: weakly
+weighted in defense, exposed to idle cash erosion if that's active, and no
+more useful to any archetype's identity than any other idle cash. Nothing
+is pushed into Real Estate specifically (closes failure mode 1 and 2), and
+Aggressor and Leverager, the two archetypes whose base strategy already
+keeps a lot of cash liquid on purpose, are exempt entirely (closes failure
+mode 3 directly, rather than hoping it doesn't recur).
+
+## Result
+Full current configuration (every mechanic Parts 1-18 recommend, mistakes
++ raid fatigue, Power Cards active), 1500 trials, Fear off vs. on:
+
+| Players | Without Fear | With Fear | Gap% (off -> on) |
+|---|---|---|---|
+| 6 | Socialite 73.9%, Diversifier 11.0%, Turtle 10.1%, Aggressor 4.7%, SoloGrinder 0.2%, Leverager 0.1% | Socialite 71.8%, Turtle 11.5%, Diversifier 10.9%, Aggressor 5.4%, SoloGrinder 0.4% | 12.0% -> 11.6% |
+| 8 | Socialite 58.1%, Prepper 16.5%, Diversifier 11.7%, Turtle 10.9%, Aggressor 1.9%, SoloGrinder 0.7%, Speculator 0.2% | Socialite 56.5%, Prepper 15.7%, Diversifier 12.8%, Turtle 11.5%, Aggressor 2.5%, SoloGrinder 0.1% | 9.5% -> 9.1% |
+
+**Clean, this time.** Every movement is small (a couple of points either
+way) and Aggressor's share moves within noise at both player counts
+(4.7% -> 5.4% at n=6, 1.9% -> 2.5% at n=8), not the one-directional favor
+every previous attempt produced for whichever archetype the redirected
+value happened to help. `AvgDeadRoundsPerPlayer` (0.023) and
+`AvgBrokeRoundsPerPlayer` (0.918) at n=6 stay in line with every other
+finding in this file, no elimination-downtime regression. The mechanic is
+genuinely active, not a rare corner case: hesitation windows trigger
+roughly 2.9 times per 6-player game.
+
+## What Part 19 doesn't cover
+- Whether 60%/2 rounds (`FEAR_DEPLOYMENT_FRACTION`, `FEAR_ROUNDS`) are the
+  right numbers, chosen directly, not swept.
+- Whether Fear should also fire from a Power Card hit (Marauder's Smash
+  and Grab, Broker's Skim), scoped to takeovers and counter-attacks only
+  this pass, matching the existing Post-Attack Shield's scope.
+- Whether excluding Aggressor and Leverager entirely, rather than applying
+  a smaller effect to them, is the right call long-term, it's the
+  simplest fix that closes the specific failure mode already found three
+  times, not necessarily the only one.
+- Retesting at player counts other than 6 and 8, or against Parts 1-15's
+  individual findings in isolation.

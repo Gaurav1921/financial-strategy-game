@@ -19,21 +19,22 @@ bring that a purely rational archetype does not:
   - raid fatigue: a repeat successful attacker's future attacks get weaker,
     mirroring the reputation tax already validated for Joint Ventures
 
-It also sweeps player count (3 to 7), which the original simulation never
-varied, to test whether the fixed 15-round structure holds up outside the
-six-player pod it was tuned on.
+It also sweeps player count (3 to 8), which the original simulation never
+varied, to test whether the round structure holds up outside the
+six-player pod it was originally tuned on (see BALANCE_TESTING.md Part 16,
+17: it does, once `roster_for` samples a fair archetype mix instead of a
+fixed prefix).
 
 A "fear after being hit" trait (playing scared and safe for a while after a
-takeover) was tried and deliberately dropped. Every version tested (divert
-new investment to Real Estate, divert proportionally from company and cash,
-freeze into cash) either handed the affected player a defense boost they
-didn't pay for, since Real Estate is weighted far more heavily than cash in
-defense, or, for the Aggressor archetype specifically, fed straight into the
-one resource (liquid cash) that archetype already wants to hoard. Each
-attempt surfaced a new archetype-dependent side effect rather than
-converging, which is itself worth recording: fear is real and probably
-matters, but it needs a properly scoped, archetype-aware modeling pass on
-its own, not a bolt-on trait here.
+takeover) took four attempts (`apply_fear_hesitation`). The first three
+(divert new investment to Real Estate, divert proportionally from company
+and cash, freeze into cash) each handed the affected player a defense
+boost they didn't pay for, or, for Aggressor specifically, fed straight
+into the one resource that archetype already wants to hoard. The fourth
+doesn't redirect anywhere: it just deploys less of a hit player's new
+investment for a couple of rounds, leaving the rest as plain, unenhanced
+idle cash, and exempts Aggressor/Leverager outright rather than hoping
+they don't benefit. Clean in testing, see BALANCE_TESTING.md Part 19.
 
 Run directly to print a summary and write CSVs next to this file.
 """
@@ -351,6 +352,14 @@ class HumanPlayer(Player):
         self.jv_pots = {}  # ally_idx -> shared dict (mirrored on both sides) {"value", "contributed_each", "industry"}
         self.pending_pact_break = None  # ally_idx a declared pact break was initiated against, resolves next round
         self.pact_break_count = 0  # declared pact breaks this player has initiated; a second one costs Power
+        self.power_card = None  # the Power Card type this player actually holds, set by assign_power_cards
+        self.power_card_action_used = (
+            False  # this player's own card action, once-per-game
+        )
+        self.power_card_has_bluffed = (
+            False  # at most one bluffed claim per game, see resolve_power_card_claims
+        )
+        self.hesitant_until_round = 0  # round number a Post-Hit Hesitation window (see apply_fear_hesitation) ends
 
     def is_broke(self):
         """Has next to nothing left to allocate, the raw financial condition,
@@ -656,7 +665,51 @@ def apply_gold_hedge(p, rng):
     p.gold += nudge
 
 
-def allocate_human(p, players, rng):
+FEAR_ENABLED = False  # set per-run
+FEAR_ROUNDS = 2  # rounds of hesitation after being successfully hit by a takeover or counter-attack
+FEAR_DEPLOYMENT_FRACTION = 0.6  # fraction of a hesitant player's new investment that still deploys; the rest sits as plain cash
+# Aggressor and Leverager already keep a lot of cash liquid on purpose, that's their whole
+# strategy. A fourth attempt at "fear" arming them further would reproduce the exact failure
+# Part 3 Finding 6 already found and dropped (freezing into cash fed Aggressor's own base plan).
+FEAR_EXEMPT_ARCHETYPES = ("Aggressor", "Leverager")
+
+
+def apply_fear_hesitation(p, current_round, company_before, re_before, stocks_before):
+    """A player who was just successfully hit plays it safe for a couple of
+    rounds, a fourth attempt at a mechanic dropped three times before
+    (BALANCE_TESTING.md Part 3, Finding 6). Every previous version
+    redirected new investment into a specific bucket, into Real Estate
+    (a free defense boost, since Real Estate is weighted far more heavily
+    than cash, 0.9x vs 0.3x), or into cash specifically (which fed
+    Aggressor's own already-liquid base strategy instead of penalizing it).
+    This version doesn't redirect anywhere: it just deploys less of this
+    round's new investment, full stop, and the clawed-back portion sits as
+    ordinary idle cash, weakly weighted in defense, exposed to idle cash
+    erosion if that's active, and not specially useful to any archetype's
+    identity, a real, unenhanced opportunity cost rather than a disguised
+    reward. Exempts the two archetypes (see FEAR_EXEMPT_ARCHETYPES) whose
+    base strategy already keeps a lot of cash on hand on purpose, the
+    specific trap every earlier attempt fell into for them.
+    """
+    if not FEAR_ENABLED or p.archetype in FEAR_EXEMPT_ARCHETYPES:
+        return
+    if p.hesitant_until_round < current_round:
+        return
+    clawback = 1.0 - FEAR_DEPLOYMENT_FRACTION
+    company_added = max(0.0, p.company - company_before)
+    re_added = max(0.0, p.real_estate - re_before)
+    p.company -= company_added * clawback
+    p.real_estate -= re_added * clawback
+    p.cash += (company_added + re_added) * clawback
+    for target_idx, value in list(p.stocks.items()):
+        added = max(0.0, value - stocks_before.get(target_idx, 0.0))
+        if added <= 0:
+            continue
+        p.stocks[target_idx] -= added * clawback
+        p.cash += added * clawback
+
+
+def allocate_human(p, players, rng, current_round=1):
     """Wraps the rational archetype allocation with mistakes."""
     cash_available = p.cash
     if rng.random() < p.mistake_rate:
@@ -683,6 +736,7 @@ def allocate_human(p, players, rng):
         track_new_stock_investment(p, players, stocks_before, rng)
     apply_real_estate_purchase_cost(p, re_before)
     apply_gold_hedge(p, rng)
+    apply_fear_hesitation(p, current_round, company_before, re_before, stocks_before)
 
     record_shares(p, cash_available, company_before, re_before)
 
@@ -975,6 +1029,152 @@ def consider_raider_pact_break(players, rng, is_building, stats):
             initiate_pact_break(p, players[p.raider_target_idx], stats)
 
 
+POWER_CARDS_ENABLED = False  # set per-run
+POWER_CARD_TYPES = [
+    "Financier",
+    "Marauder",
+    "Guardian",
+    "Broker",
+    "Banker",
+    "Insider",
+    "Analyst",
+]
+AUDIT_COST = 5.0  # GDD.md Section 8.3: flat, not scaled to wealth, a real cost against a 20-cash starting stake
+AUDIT_LIE_PENALTY_PCT = 0.15  # a caught lie costs this fraction of the liar's current Power, same figure as Section 5/7
+POWER_CARD_CLAIM_CHANCE = (
+    0.15  # per round, chance a player with an unused real card action attempts it
+)
+POWER_CARD_BLUFF_CHANCE = (
+    0.05  # per round, chance a player attempts one bluffed claim this game
+)
+POWER_CARD_AUDIT_CHANCE = (
+    0.25  # per claim, chance a random other living player audits it
+)
+# The three cards whose action is a clean, unconditional number (GDD.md Section 8.1): a
+# capital raise, a smaller-than-a-takeover capture, and a cash skim. Guardian and Analyst's
+# Countermeasure are blocks, not modeled this pass (see resolve_power_card_claims' docstring);
+# Banker's benefit is conditional on actually wanting a loan, and Insider/Analyst's payoff is
+# information a fixed-behavior bot has no way to act on, so those three are still claimed and
+# auditable, contributing real cost and bluff/audit texture, but carry no separate Power effect yet.
+POWER_CARD_MODELED_ACTIONS = ("Financier", "Marauder", "Broker")
+
+
+def assign_power_cards(players, rng):
+    """Deals each player one of the 7 card types, no duplicates, up to 7
+    players. At 8 (GDD.md Section 1's new upper bound, one seat past the
+    original 7-card design), exactly one type repeats: a real, named
+    simplification, not a rules gap nobody noticed, an 8th card is a real
+    design task of its own, not a side effect of a player-count sweep.
+    """
+    if not POWER_CARDS_ENABLED:
+        return
+    types = list(POWER_CARD_TYPES)
+    n = len(players)
+    if n <= len(types):
+        dealt = rng.sample(types, n)
+    else:
+        dealt = types + [rng.choice(types)]
+        rng.shuffle(dealt)
+        dealt = dealt[:n]
+    for p, card in zip(players, dealt):
+        p.power_card = card
+
+
+def _resolve_power_card_action(claimed_card, claimant, players, rng, is_building):
+    """Applies the Power/cash effect of a successfully resolved claim (a
+    true claim, or a bluff nobody audited), for the three cards with a
+    clean, unconditional numeric effect (see POWER_CARD_MODELED_ACTIONS).
+    Returns False if the claimed card has no modeled action, or the phase
+    doesn't allow it (Marauder is an attack, Conflict Phase only, matching
+    every other attack in this game).
+    """
+    if claimed_card == "Financier":
+        claimant.cash += claimant.company * 0.20
+        return True
+    if claimed_card == "Marauder":
+        if is_building:
+            return False
+        candidates = [q for q in players if q.idx != claimant.idx and not q.bankrupt]
+        if not candidates:
+            return False
+        target = max(candidates, key=lambda q: q.cash + q.company)
+        captured = collect_payment(target, 0.10 * target.total_power())
+        claimant.cash += captured
+        return True
+    if claimed_card == "Broker":
+        if is_building:
+            return False
+        candidates = [q for q in players if q.idx != claimant.idx and q.cash > 0]
+        if not candidates:
+            return False
+        target = max(candidates, key=lambda q: q.cash)
+        skimmed = min(target.cash, target.cash * 0.08)
+        target.cash -= skimmed
+        claimant.cash += skimmed
+        return True
+    return False
+
+
+def resolve_power_card_claims(players, rng, is_building, stats):
+    """A first simulation pass, matching the scope this file's other
+    first-pass mechanics (Hidden Raider, Part 9) were given: real
+    claim/bluff/audit dynamics and their real cost, not a fully faithful
+    implementation of all 7 cards' distinct flavor. Each card action is a
+    Declaration (GDD.md Section 8.1): any player can Audit it at
+    `AUDIT_COST`, a failed Audit (the claim was true) refunds the auditor
+    from the claimant, a caught lie costs the claimant `AUDIT_LIE_PENALTY_PCT`
+    of their current Power and voids the claimed effect entirely, the exact
+    asymmetry Section 8.3 specifies. Block halves (Guardian, Broker's Vault,
+    Banker's Standstill, Analyst's Countermeasure) aren't simulated yet,
+    they're reactive and need to be threaded into combat resolution order,
+    a real follow-up, not this pass.
+    """
+    if not POWER_CARDS_ENABLED:
+        return
+    for p in players:
+        if p.bankrupt:
+            continue
+        claimed_card = None
+        is_bluff = False
+        if not p.power_card_action_used and rng.random() < POWER_CARD_CLAIM_CHANCE:
+            claimed_card = p.power_card
+        elif not p.power_card_has_bluffed and rng.random() < POWER_CARD_BLUFF_CHANCE:
+            claimed_card = rng.choice(
+                [c for c in POWER_CARD_TYPES if c != p.power_card]
+            )
+            is_bluff = True
+
+        if claimed_card is None:
+            continue
+
+        auditors = [q for q in players if q.idx != p.idx and not q.bankrupt]
+        audited = bool(auditors) and rng.random() < POWER_CARD_AUDIT_CHANCE
+        auditor = rng.choice(auditors) if audited else None
+
+        if audited:
+            auditor.cash -= AUDIT_COST
+            if is_bluff:
+                penalty = collect_payment(p, p.total_power() * AUDIT_LIE_PENALTY_PCT)
+                auditor.cash += min(AUDIT_COST, penalty)
+                stats["power_card_lies_caught"] += 1
+                stats["power_card_lie_penalties_paid"] += penalty
+                p.power_card_has_bluffed = True
+                continue  # a caught claim never resolves, true or false
+            p.cash += AUDIT_COST  # a failed audit rewards the truthful claimant
+            stats["power_card_failed_audits"] += 1
+
+        resolved = _resolve_power_card_action(
+            claimed_card, p, players, rng, is_building
+        )
+        if claimed_card == p.power_card and not is_bluff:
+            p.power_card_action_used = True
+        if is_bluff:
+            p.power_card_has_bluffed = True
+        stats["power_card_claims"] += 1
+        if resolved:
+            stats["power_card_effects_resolved"] += 1
+
+
 ALLIANCE_VISIBILITY_ENABLED = True
 
 
@@ -1022,6 +1222,8 @@ def mark_hit(target, attacker, current_round):
     target.shielded_until_round = current_round + POST_ATTACK_SHIELD_ROUNDS
     target.last_attacker_idx = attacker.idx
     target.ever_raided = True
+    if FEAR_ENABLED:
+        target.hesitant_until_round = current_round + FEAR_ROUNDS
 
 
 def attempt_takeovers_human(players, rng, current_round, stats, bank):
@@ -2038,6 +2240,11 @@ def new_stats():
         "co_founder_buyout_volume": 0.0,
         "co_founder_parachutes_paid": 0.0,
         "defender_rewards_paid": 0.0,
+        "power_card_claims": 0,
+        "power_card_effects_resolved": 0,
+        "power_card_failed_audits": 0,
+        "power_card_lies_caught": 0,
+        "power_card_lie_penalties_paid": 0.0,
     }
 
 
@@ -2073,6 +2280,7 @@ def simulate_game(n_players, rng, total_rounds=TOTAL_ROUNDS, building_rounds=Non
     players = [HumanPlayer(i, archetypes[i], rng) for i in range(n_players)]
     assign_raiders(players, rng)
     assign_industries(players, rng)
+    assign_power_cards(players, rng)
     leader_history = []
     stats = new_stats()
     bank = Bank(pool=BANK_POOL_PER_PLAYER * n_players)
@@ -2091,13 +2299,14 @@ def simulate_game(n_players, rng, total_rounds=TOTAL_ROUNDS, building_rounds=Non
         settle_peer_defaults(players, stats)
         for p in players:
             debt_before = p.debt
-            allocate_human(p, players, rng)
+            allocate_human(p, players, rng, rnd)
             if p.archetype == "Leverager":
                 enforce_bank_capacity(p, debt_before, bank, stats)
         for p in players:
             try_form_jv_human(p, players, rng)
         resolve_jvs_human(players, rng, is_final, stats, scenario_deltas)
         consider_raider_pact_break(players, rng, is_building, stats)
+        resolve_power_card_claims(players, rng, is_building, stats)
         assign_co_founders(players, rng)
         apply_co_founder_influence(players, stats)
         assign_ghost_backing(players, rng)
