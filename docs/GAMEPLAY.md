@@ -1,4 +1,4 @@
-# Gameplay Guide (Live Mode, 5 to 7 players)
+# Gameplay Guide (Live Mode, 3 to 8 players)
 
 This is the practical companion to `GDD.md`. The GDD explains *why* each
 mechanic exists and how it was validated; this doc explains what a player
@@ -7,9 +7,11 @@ here match the current simulation constants in `sim/human_sim.py` and
 `sim/power_simulation.py`, the source of truth for anything not yet built
 in `backend/`. The game's working title is **Hostile Ledger**.
 
-**Player count: 5 to 7, not 3 to 4.** Below 5 players, the eventual winner
-is locked in by round 2 or 3 of 15, most of the game plays out as a
-foregone conclusion. 5 to 7 is where the structure actually holds up.
+**Player count: 3 to 8.** An earlier version of this game excluded 3-4
+players entirely, based on a test that turned out to be measuring a biased
+archetype sample as much as the player count itself (BALANCE_TESTING.md
+Part 17). With that fixed, 3-4 read comparably to every other supported
+count. 9-10 aren't supported yet.
 
 ## 1. Setup
 
@@ -84,7 +86,7 @@ belongs to one of ten fixed **Industries**: Healthcare, Technology,
 Pharma, Energy, Financial Services, Consumer Retail, Agriculture,
 Manufacturing, Media & Entertainment, and Property. ("Property," not
 "Real Estate": Real Estate is the separate defensive asset class below,
-same name would be confusing at the table.) With 5 to 7 players and 10
+same name would be confusing at the table.) With 3 to 8 players and 10
 industries, most industries have zero or one player in them. That's
 fine, industries aren't scarce.
 

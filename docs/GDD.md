@@ -1,10 +1,14 @@
 # Hostile Ledger - Game Design Doc
 
 ## 1. Pitch
-A web-based financial strategy game for a small group of friends (**5 to
-7**, simulation-tested: at 3 to 4 players the fixed round structure locks
-the outcome in almost immediately, only one archetype ever wins, see
-BALANCE_TESTING.md Part 3) playing together in one sitting - start to
+A web-based financial strategy game for a small group of friends (**3 to
+8**, simulation-tested: an earlier pass found 3-4 players broke down
+because of a biased test roster, not the player count itself, once that
+bias was fixed, 3-4 read comparably to every other supported count, and 8
+was validated once two new archetypes existed so a larger table wasn't
+just padded with duplicate first-timers; see BALANCE_TESTING.md Part 17.
+9-10 aren't supported yet, the same roster problem reappears there without
+a genuine 9th archetype) playing together in one sitting - start to
 finish in under an hour, like a
 board game night, not a slow mobile game you check in on for weeks. Everyone
 builds a company and grows their **Power** - a combined score built from
@@ -234,7 +238,7 @@ Retail, Agriculture, Manufacturing, Media & Entertainment, Property.**
 
 ("Property," not "Real Estate": that name is already the defensive asset
 class, Section 5.2, using it twice would be genuinely confusing at the
-table.) With 5-7 players and 10 industries, most industries have zero or
+table.) With 3-8 players and 10 industries, most industries have zero or
 one player in them, a few might overlap, that's fine, industries aren't a
 scarce resource players compete over.
 
@@ -634,53 +638,150 @@ for a pact that was ever public:
   word" cost as a Joint Venture drain, and takes effect at the *start of
   next round*, not immediately. You can't declare a pact to prop up a
   defense number for one attack and un-declare it the instant that attack
-  resolves. Not yet built or simulated, so the exact cost isn't locked in,
-  but it should follow the same principle the JV fix landed on (Section 5,
-  Section 7): not a hidden "reputation" score nobody can see, a real,
-  visible Power hit the moment a second declared pact gets broken, the
-  same kind of consequence a JV drain now carries.
+  resolves. **Built and simulation-tested** (BALANCE_TESTING.md Part 15):
+  a first declared break costs nothing beyond the relationship itself, a
+  second costs a real, visible ~15% Power hit, docked on the spot, the
+  same principle and the same size as the JV reputation fix (Section 5,
+  Section 7), not a hidden "reputation" score nobody can see.
 This means switching who you back is always possible, real allegiance
 shifts are part of the game, but doing it loudly and often costs you the
-same way backstabbing a Joint Venture partner does. Not yet simulated.
+same way backstabbing a Joint Venture partner does. Simulation-tested
+clean: Socialite stays the dominant winner and the anti-snowball margin
+holds in the same band it was already in, with or without the mechanic
+active (BALANCE_TESTING.md Part 15).
 
 ## 8. Bluffing, hidden roles, and personal stakes
 
 ### 8.1 Power Cards - Coup's mechanic, reused for finance
 Your colleague's idea, and it fits neatly on top of what's already
-designed. Like Coup, each player secretly holds a Power Card granting one
-special move or block; you can bluff about which one you have; anyone can
-challenge your claim. **This reuses the existing Declare/Audit system**
-rather than needing a whole new mechanic - claiming a Power Card *is* a
-Declaration, challenging it *is* an Audit. Rough set of 7, one per possible
-player:
-- **The Financier** - bonus income / blocks someone else's basic income move
-- **The Raider** - a direct hit on a rival's company, smaller than a full takeover
-- **The Guardian** - blocks a Raider's attack
-- **The Broker** - skims cash from a rival / blocks being skimmed from
-- **The Banker** - better loan terms / blocks someone calling in a loan against you
-- **The Insider** - peek at a hidden thing (a rival's holdings, a rumor's truth)
-- **The Analyst** (**locked in** as the 7th card) - manipulate the Market:
-  force a rival's stock position to be revealed, or issue a public
-  "report" that moves how much a target's company is perceived to be worth
-  for one round / blocks another player's Analyst move against you or your
-  holdings. The Market (Section 5.3) is the one core money mechanic none
-  of the other six cards touch at all, everything else clusters around
-  income, takeovers, loans, and information. Alternatives considered but
-  not chosen: **The Regulator** (freeze or partially seize a rival's Real
-  Estate for a round) and **The Fixer** (resets `drain_count`, wiping a
-  player's proven-betrayal record clean). The Analyst is the strongest fit
-  for making Power Cards
-  reinforce the financial side of the game rather than adding another
-  combat lever. Note the name collision worth fixing before this ships:
-  **The Raider** (a Power Card, above) and the **Hidden Raider** role
-  (Section 8.2) use the same word for two unrelated things, real confusion
-  risk at a live table ("wait, the card or the role?").
+designed. Like Coup, each player secretly holds one Power Card granting one
+special action and one special block; you can bluff about which one you
+have; anyone can challenge your claim. **This reuses the existing
+Declare/Audit system** rather than needing a whole new mechanic, claiming a
+Power Card *is* a Declaration, challenging it *is* an Audit, at the exact
+costs and penalties Section 8.3 now defines.
 
-Not yet simulated - bluffing behavior is hard to model meaningfully without
-simulating the bluffing itself, which is a separate piece of work (see
-BALANCE_TESTING.md Part 2, "what this doesn't cover"). `sim/human_sim.py`'s
-trait framework makes this more tractable than when it was first deferred,
-still real, unstarted work.
+**The naming collision flagged in the last pass is fixed**: the Power Card
+formerly called "The Raider" is renamed **The Marauder** below. "The
+Raider" (a card) and the **Hidden Raider** role (Section 8.2) used the same
+word for two unrelated things, real confusion risk at a live table ("wait,
+the card or the role?"), and the fix costs nothing since the card's
+mechanics were never attached to the name.
+
+**Deal and lifecycle.** At game start, each player is secretly dealt one
+of the 7 card types below, no duplicates: with 5 or 6 players, one or two
+of the 7 types simply aren't in play that game, the same "not every
+Industry has a player in it" logic Section 5A already uses for a resource
+that doesn't need to be scarce. **Each card's action and its block are
+each usable exactly once per game**, independently, most cards get one
+real moment for each. This is a real, one-time swing, not a repeatable
+income stream: 15 rounds is long enough that unlimited-use abilities would
+have to be priced far weaker to stay balanced, and this game already has a
+pattern for rare, high-impact, once-ish events (a takeover, a JV drain, the
+Defense Pact breakup penalty's second strike) that Power Cards fit into
+more naturally than a repeatable one would. **A claim that repeats a move
+already legitimately used this game is automatically a lie if the claimant
+truly held that card**, real texture for a sharp Audit read ("you already
+did that this game") that costs nothing to add since it falls straight out
+of the one-per-game rule.
+
+**Phase gating matches Section 4's existing rule exactly**: a Power Card
+move that takes value from another player without their consent is an
+attack, and is Conflict Phase only, same as a takeover. A move that only
+touches the user's own position, or only reveals information, is available
+in every round, Building Phase included, the same "only attacks are
+phase-gated" principle Section 4 already states for the rest of the game.
+
+The 7 cards:
+
+- **The Financier** (income)
+  - *Action, Capital Raise* (any round): add 20% of your current Company
+    value straight to your own Cash, a one-time financing round. Doesn't
+    touch anyone else, so it's legal in the Building Phase.
+  - *Block, Freeze* (any round, named target, an attack): zero a named
+    target's Company and Real Estate income for this round only.
+- **The Marauder** (renamed from "The Raider")
+  - *Action, Smash and Grab* (Conflict Phase only, an attack): capture 10%
+    of a named target's total wealth straight to your own Cash, the same
+    cash-then-Company-then-Real-Estate cascade a takeover uses (Section 6),
+    deliberately smaller than a takeover's 25% and not a full takeover:
+    it doesn't trigger a Post-Attack Shield and doesn't count as a
+    "runaway leader" strike either way. If blocked by a Guardian, it fails
+    exactly like a failed takeover attempt (Section 6): the Marauder loses
+    50% of the intended capture, split between the target and the Bank.
+- **The Guardian** — one job, no action of its own
+  - *Block, Bodyguard* (Conflict Phase only): fully negate one attack
+    against your own company, whether it's a takeover, a counter-attack, or
+    a Marauder's Smash and Grab. The attacker still pays the normal failed-
+    attack penalty. Matches Section 6's "Declarations are always about your
+    own position" rule: a Guardian can only protect themselves, not an ally.
+- **The Broker** (cash)
+  - *Action, Skim* (Conflict Phase only, an attack): take 8% of a named
+    target's current Cash directly, a pickpocket, not a raid, smaller than
+    the Marauder's already-smaller-than-a-takeover hit.
+  - *Block, Vault* (any round): fully negate one Skim attempt against you.
+    The failed Broker forfeits half the attempted skim to the Bank, the
+    same shape as a failed attack at a proportionally smaller scale.
+- **The Banker** (loans)
+  - *Action, Easy Terms* (any round): take a Bank loan this round at the
+    flat 8% base rate with no leverage risk premium added (Section 5B's
+    normal 8% + 35% x leverage formula is waived for this one loan), still
+    limited by the Bank's actual available pool.
+  - *Block, Standstill* (any round): for one round, your existing debt is
+    charged interest at the flat 8% base only (your leverage premium is
+    waived) and you can't be denied a loan due to a Bank capacity
+    shortfall. A deliberate reframing of the original "blocks someone
+    calling in a loan against you" idea: peer-loan recall isn't a modeled
+    mechanic (Section 5 item 4), so Standstill is scoped to shield against
+    exactly the leverage-driven costs the Loans system already charges,
+    not a mechanic that doesn't exist yet.
+- **The Insider** (information) — one job, no block
+  - *Action, Tip-Off* (any round, named target): privately learn that
+    target's true Cash, Company, Real Estate, Gold, and Debt (their full
+    hidden breakdown, Section 6), without them being told they were looked
+    at. The Declaration ("I'm claiming to be the Insider") is public and
+    auditable as always; the *result* of a successful, un-audited peek
+    stays private unless the Insider later chooses to leak it (Section
+    8.4). No block exists for this card on purpose, matching the original
+    design: information asymmetry is the whole point, there's no
+    defending against being looked at, only against being told about it.
+- **The Analyst** (**locked in** as the 7th card, Section 5.3's Market)
+  - *Action, Expose or Report, pick one* (any round, named target, uses
+    the card's single action-use either way): **Expose** forces a named
+    target's Market (Industry) positions to be revealed to the whole
+    table, publicly. **Report** issues a public "report" that shifts how
+    the target's Company is perceived for one round: their *apparent*
+    Company value, for attack-power and defense calculations only, not
+    their real Power, moves +/-15% (the Analyst's choice of direction), the
+    same figure the JV reputation penalty and the Audit lying penalty
+    already use, a real, one-round perception shock, not their actual
+    wealth.
+  - *Block, Countermeasure* (any round): fully negate an Expose or Report
+    aimed at you.
+
+Alternatives considered but not chosen for the 7th card slot: **The
+Regulator** (freeze or partially seize a rival's Real Estate for a round)
+and **The Fixer** (resets `drain_count`, wiping a player's proven-betrayal
+record clean). The Analyst remains the strongest fit: the Market is the
+one core money mechanic none of the other six cards touch at all,
+everything else already clusters around income, takeovers, loans, and
+information.
+
+**Not yet simulated.** Every number above was chosen to sit inside this
+game's existing vocabulary of percentages (a takeover's 25%, a JV drain's
+65/35, a reputation-style penalty's 15%) rather than invented fresh, and
+every action/block pairing was checked against Section 6 and Section 4's
+existing rules (self-only Declarations, phase-gating) rather than granting
+a new exception. None of it has a simulated win-rate or balance read yet:
+bluffing behavior is hard to model meaningfully without simulating the
+bluffing itself, a separate piece of work (see BALANCE_TESTING.md Part 2,
+"what this doesn't cover"). `sim/human_sim.py`'s trait framework (declared
+vs. covert posture, `declare_bias`) makes this more tractable than when it
+was first deferred, still real, unstarted work: a first pass would need
+each archetype to have a plain probability of claiming a card it doesn't
+hold and a plain probability of Auditing a suspicious claim, not real
+strategic bluffing, the same honesty caveat every other mechanic in this
+file already carries about the gap between fixed bots and adaptive humans.
 
 ### 8.2 Hidden Raider role
 A minority of players are secretly **Raiders** - their win condition
@@ -706,16 +807,54 @@ their secret win condition in **14.9%** of games, a real, achievable rate
 that isn't trivial and isn't hopeless either, a first, defensible data
 point, not a fully tuned number.
 
+**Resolved**: whether Raiders should also withhold Defense Pact support
+from their target. Passive under-defending has no separate representation
+in the model, so a Raider allied with their own target now has a real
+chance each round, once the Conflict Phase opens, to sever the pact
+outright instead, using the Defense Pact breakup mechanic below (Section
+7, BALANCE_TESTING.md Part 15). Raider success rate moved within a small,
+inconsistent band (15.0-17.3%) with the sabotage vector active, noise at
+this sample size, not a clear signal either way.
+
 **Still open**: reveal timing (never, end of game, or a player-triggered
-reveal), whether Raiders should also withhold Defense Pact support from
-their target (not yet modeled), and whether the 14.9% success rate is the
-right target or needs tuning once reveal timing and Power Cards are
-layered in.
+reveal), and whether the 14.9% success rate is the right target or needs
+tuning once reveal timing and Power Cards are layered in.
 
 ### 8.3 Declarations & Audits
 Any claim (a trade offer, a tip, a statement of your own holdings, a Power
 Card claim) can be audited by another player at a resource cost. Being
-caught lying is penalized harder than a failed audit.
+caught lying is penalized harder than a failed audit. **Exact numbers,
+given real ones didn't exist anywhere before this pass:**
+
+- **Auditing costs a flat 5 cash**, paid by the auditor the moment they
+  declare an Audit, regardless of what it finds. Flat, not scaled to
+  wealth, on purpose: it should stay a real, felt cost against a starting
+  stake of 20 cash without becoming irrelevant pocket change once a table's
+  cash piles grow into the hundreds, the same reasoning a fixed Bank
+  deposit rate (Section 5B) already uses for the one number in this game
+  that's deliberately not scenario-driven.
+- **A failed Audit** (the Declaration was true) costs the auditor their 5
+  cash, paid straight to the player they audited, a real reward for having
+  told the truth, the same "defending pays" principle a successful defense
+  against a takeover already carries (Section 6).
+- **A caught lie** costs the liar a real, visible ~15% of their current
+  total Power, docked on the spot through the same collection cascade used
+  everywhere else in this game (cash, then Company, then Real Estate),
+  with the auditor's 5 cash refunded out of that penalty first. Reusing
+  the exact figure the JV reputation penalty and the Defense Pact breakup
+  penalty already use (Section 5, Section 7) rather than inventing a
+  separate number: this is the same currency (a visible Power hit) doing
+  the same job (make a specific broken trust cost something real) for a
+  third mechanic in a row.
+
+This is deliberately asymmetric in the direction Section 8.3's original
+draft already promised ("caught lying is penalized harder than a failed
+audit"): a failed Audit costs a flat 5, a caught lie costs a percentage of
+total wealth that grows with the game and is meant to sting far more than
+5 cash by the time it matters. Not yet simulated: what this does to how
+often a rational bot actually chooses to Audit, since every other
+percentage-based penalty in this file (JV, Defense Pact) has already been
+tested and this one hasn't.
 
 ### 8.4 Ghost/Observer status
 A bankrupted or fully-taken-over company doesn't vanish. Its founder
@@ -834,7 +973,15 @@ for a group of friends playing together.
   (Section 5 item 4), a safe, modest, taxed return that beats erosion
   without ever beating actual investment. See BALANCE_TESTING.md Part 12.
 - ~~Power Cards' 7th card - still undecided~~ **resolved**: The Analyst is
-  locked in (Section 8.1). Power Cards as a whole are still unsimulated.
+  locked in (Section 8.1). **All 7 cards now have exact, numbered mechanics**
+  (action and block for each, phase-gating, the once-per-game lifecycle,
+  and the naming collision with the Hidden Raider role fixed by renaming
+  "The Raider" card to The Marauder), reusing Section 8.3's now-quantified
+  Declare/Audit costs and this game's existing percentage vocabulary rather
+  than inventing new numbers. **Still genuinely open**: none of it has a
+  simulated win-rate or balance read yet, this pass was design only, no
+  code. That first simulation pass is the next real step, not a rules
+  question anymore.
 - ~~Raider/Builder ratio and reveal timing~~ **ratio simulated**: roughly 1
   Raider per 5-6 players, 14.9% Raider success rate, no measurable effect
   on Builder balance (see Section 8.2). **Reveal timing is still open.**
@@ -842,17 +989,52 @@ for a group of friends playing together.
   not being mandatory, and the final round being different - a lot to land
   in one sitting with a first-time group. Probably needs a guided first
   few rounds rather than a rules dump.
-- **Round count doesn't scale with player count.** `sim/human_sim.py`'s
-  player-count sweep found the fixed 15-round structure is fine at 5 to 7
-  players but breaks down below that: at 3 to 4 players the eventual
-  winner is locked in by round 2 of 15, meaning most of a small-group game
-  plays out as a foregone conclusion. That's why the range is 5 to 7
-  (Section 1), not 4 to 7: 4 shows the identical failure as 3. If 4-player
-  support is wanted as a real product decision, this needs a
-  player-count-scaled round count built and validated, not just the label
-  changed back. (Building Phase *length* is now hidden and randomized
-  per game, see above, a related but separate fix for a different
-  problem, "the Building Phase is a solved formula," not this one.)
+- ~~Round count doesn't scale with player count, and the anti-snowball
+  margin has only ever been validated against the six-player pod~~
+  **partially resolved**: every mechanic added since Part 7's margin fix
+  (Industries, Gold, Bank deposits, Co-Founder, the JV rebuild, the Defense
+  Pact breakup mechanic) had only ever been tested at n=6. Run together,
+  for the first time, across the full 5-7 range: all three player counts
+  now hold up (healthy archetype variety, Socialite dominant but never
+  runaway, near-zero dead rounds), confirming the officially supported
+  range on its own terms, not just extrapolated from the six-player result.
+  See BALANCE_TESTING.md Part 16.
+
+  **Superseded by Part 17** (see below and Section 1): the "different,
+  not-yet-clean problem" this paragraph originally described (Socialite
+  crossing 50% at 4 players, Aggressor winning outright at 3) turned out to
+  be a roster-sampling bug, not a property of small player counts. Fixed,
+  and the range is now **3 to 8**, not 5 to 7.
+
+  **Traced and mostly resolved** (BALANCE_TESTING.md Part 17): that
+  dominance problem turned out to be a roster-composition bug, not a real
+  property of small player counts. `roster_for` had been handing every
+  3-player game the *identical* `[Diversifier, Turtle, Aggressor]` roster
+  and every 4-player game the identical four, Socialite never appeared at
+  all in a 3-player game, SoloGrinder and Leverager never appeared at 3 or
+  4, in this file's entire testing history. Fixed to a genuine random
+  sample of the 6 archetypes. With that fixed: no archetype crosses 50% at
+  either 3 or 4 players, Socialite leads at both (consistent with every
+  other player count), and winner variety improves. (Building Phase
+  *length* is hidden and randomized per game, see above, a related but
+  separate fix for a different problem, "the Building Phase is a solved
+  formula," not this one.)
+
+  **What's still a real, open product decision, not a numbers question
+  anymore**: whether to actually lower the officially supported minimum
+  below 5. The evidence that excluded 3-4 players in the first place was
+  measuring a biased roster as much as the player count itself, and with
+  that bias fixed, 3-4 now look comparable to 5-7 on every metric this file
+  tracks (lock round, win-rate variety, no single-archetype dominance).
+  That's real, positive evidence, not proof a human table of 3-4 has a
+  good time, the same bots-aren't-playtesting caveat every finding in this
+  file carries. Two new archetypes (**The Speculator**, a concentrated
+  Market bettor, and **The Prepper**, a Gold/Bank-deposit hoarder, both
+  reusing existing mechanics rather than new plumbing) were also built and
+  tested for the *maximum* end: **8 players reads clean**, directly
+  comparable to 7 on every metric; 9-10 are not yet clean, both still lean
+  on duplicate Casual bots to fill the table rather than genuinely distinct
+  archetypes.
 - ~~Ordinary human inconsistency weakens the anti-snowball fix more than
   expected~~ **resolved**: Finding 5's fix only ever won by a 1.1% margin
   (405.9 vs 401.3 Power), a coin flip dressed up as a validated result,
@@ -876,26 +1058,23 @@ for a group of friends playing together.
   a modest income bonus to the host (Section 8.4), simulation-validated to
   zero out dead rounds with negligible balance cost. See BALANCE_TESTING.md
   Part 9.
-- **Defense Pact breakup has no defined cost.** Declaring or ending an
-  alliance mid-game isn't addressed anywhere in Sections 6-7: can a player
-  freely flip allegiance round to round with no consequence? Currently
-  undefined. Proposed fix, not yet simulated: ending a covert pact is free
-  (nobody knew anyway); ending a *declared* pact costs a real, visible
-  Power hit on the second break and takes effect starting the following
-  round, not the same round, mirroring the JV reputation fix's 2-strike
-  pattern (Section 5, Section 7) rather than a separate hidden score.
-- **Should a Joint Venture partner automatically be a Defense Pact
-  partner?** Asked directly, and it's a real fork that's never been
-  deliberately decided, it just fell out of the simulation modeling both
-  as the same `allies` relationship. Two real options: (a) keep them
-  merged, "we're in business together, we've got each other's backs" as a
-  single relationship, simple, one cap covers both (Section 5); or (b)
-  split them into two independent relationships, a purely financial
-  partner who owes you nothing in a fight, and a separate combat ally who
-  isn't necessarily pooling money with you. (b) is more realistic and
-  arguably more interesting (a JV partner secretly declining to defend you
-  is its own betrayal beat) but doubles the bookkeeping and needs its own
-  cap and simulation pass. Not yet decided.
+- ~~Defense Pact breakup has no defined cost~~ **resolved**: ending a
+  covert pact is free (nobody knew anyway); ending a *declared* pact costs
+  nothing on the first break, then a real, visible ~15% Power hit on the
+  second, and takes effect starting the following round, not the same
+  round, mirroring the JV reputation fix's 2-strike pattern exactly
+  (Section 5, Section 7). Built and simulation-tested clean: Socialite
+  stays dominant and the anti-snowball margin holds in the same band with
+  or without it active. See BALANCE_TESTING.md Part 15.
+- ~~Should a Joint Venture partner automatically be a Defense Pact
+  partner?~~ **decided**: keep them merged, one relationship, one cap
+  (option (a) below), "we're in business together, we've got each other's
+  backs." Splitting them into two independent relationships (option (b):
+  a purely financial partner who owes you nothing in a fight, and a
+  separate combat ally who isn't necessarily pooling money with you) would
+  need a real re-architecture and a full retest of Part 8's validated
+  `MAX_ALLIES=2`, and nothing in this file's testing history has shown a
+  concrete reason to make that trade. See BALANCE_TESTING.md Part 15.
 - ~~Two of four financial-depth mechanics are now validated, two still need
   fixes~~ **all four now validated**: real long/short stock positions, a
   progressive income tax (assessed once a round on every source of profit
@@ -926,8 +1105,11 @@ for a group of friends playing together.
 ## 10. MVP Scope (Live Mode)
 
 ### In scope (v1)
-- 5 to 7 players, one sitting, ~45–60 minutes. Not "up to 7": 3 to 4
-  players is a structurally different, currently-broken game (Section 1).
+- 3 to 8 players, one sitting, ~45-60 minutes, with room lengths scaling
+  loosely at the extremes (a 3-player game locks in a leader earlier, an
+  8-player game runs a bit longer). 9-10 aren't in scope yet: both still
+  rely on duplicate Casual bots in testing rather than genuinely distinct
+  archetypes (Section 1, BALANCE_TESTING.md Part 17).
 - Building Phase + Conflict Phase structure.
 - All six money mechanics (Company, Real Estate, Market, Loans, Joint
   Ventures, Takeovers) - simulation-tested numbers from Section 5/6.

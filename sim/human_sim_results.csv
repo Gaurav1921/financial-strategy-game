@@ -1,0 +1,6 @@
+Players,AvgBrokeRoundsPerPlayer,AvgDeadRoundsPerPlayer,MaxDeadRoundsSeen,AvgLockRound,AvgTopVsSecondGapPct,MostFrequentWinner,WinnerVarietyCount
+3,0,0,0,1.3,3.0,Diversifier,2
+4,0,0,0,2.6,3.2,Diversifier,3
+5,0,0,0,9.6,12.0,Socialite,4
+6,1.03,0,0,10.5,10.5,Socialite,4
+7,0.89,0,0,10.9,6.5,Socialite,5

@@ -9,12 +9,9 @@ node_modules/
 frontend/dist/
 
 # Internal/local-only tooling - not tracked in this repo.
-# Balance-testing methodology and results are documented in
-# docs/BALANCE_TESTING.md; this is just the code that produced them, kept
-# local rather than public. VS Code's auto-init task (.vscode/tasks.json)
-# still points at scripts/setup-env.ps1, which will only work on machines
-# where that file exists locally - that's intentional.
-sim/
+# VS Code's auto-init task (.vscode/tasks.json) still points at
+# scripts/setup-env.ps1, which will only work on machines where that file
+# exists locally - that's intentional, see docs/ENVIRONMENT_SETUP.md.
 scripts/
 
 # Editor / OS

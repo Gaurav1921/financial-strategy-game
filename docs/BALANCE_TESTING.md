@@ -952,8 +952,15 @@ Asked directly to confirm a 4-7 player range. Checked the actual sweep
 
 4 players shows the identical failure mode as 3, locked in almost
 immediately with only one archetype ever able to win. The real breakpoint
-is between 4 and 5, not 3 and 4. GDD.md now states **5 to 7 players**, not
-4 to 7, in Sections 1 and 10.
+is between 4 and 5, not 3 and 4. GDD.md at this point in the project's
+history states **5 to 7 players**, not 4 to 7, in Sections 1 and 10.
+
+**Superseded by Part 17**: this table's roster was drawn from a fixed,
+unrepresentative slice of the 6 archetypes (every 3-player game got the
+identical `[Diversifier, Turtle, Aggressor]`, every 4-player game the
+identical four), a bug in `roster_for`, not a finding purely about player
+count. Once fixed to a genuine random sample, 3-4 players read comparably
+to every other supported count. GDD.md now states **3 to 8 players**.
 
 ## What Part 9 doesn't cover
 - Whether a Raider should withhold passive Defense Pact support from their
@@ -1525,3 +1532,315 @@ doesn't work.
 - The proposed Defense Pact breakup cost (GDD.md Section 9) was updated to
   describe the same visible-Power-hit principle but still isn't built or
   simulated.
+
+---
+
+# Part 15 - Defense Pact breakup gets a real cost, and the JV/Pact fork gets decided
+
+## Why this exists
+Two review items closed together, since they touch the same relationship.
+First, GDD.md Section 9 had proposed wording for what ending a *declared*
+Defense Pact should cost (mirroring the JV reputation penalty's two-strike
+pattern) but it was never built or simulated, only described as if decided.
+Second, whether a Joint Venture partner should automatically also be a
+Defense Pact partner was a real, named fork (GDD.md Section 9) that had
+never been decided either way, it fell out of how the bots were originally
+modeled, one `allies` relationship covering both, and was never revisited
+as a deliberate choice.
+
+## The fork: keep them merged
+Decided in favor of the status quo, deliberately rather than by default:
+**a Joint Venture partner and a Defense Pact partner stay the same
+relationship**, not two independent caps. Splitting them would need a real
+re-architecture (two separate ally sets, two separate caps to tune) and a
+full retest, and nothing in this file's testing history has ever shown a
+reason the split is needed. Part 8 already validated `MAX_ALLIES=2`
+specifically against this merged model; splitting it now would invalidate
+that result without a concrete problem driving the change. Matches GDD.md
+Section 9's option (a): "we're in business together, we've got each
+other's backs," one relationship, one cap.
+
+## The fix: a real breakup cost, built to match the GDD's own proposed wording
+`PACT_BREAK_ENABLED`: either partner can end the shared alliance whenever
+they want (`initiate_pact_break`). Ending a **covert** pact costs nothing
+and happens immediately, nobody outside it knew it existed, so there's
+nothing publicly broken. Ending a **declared** pact is deferred to the
+start of *next* round (`finalize_pending_pact_breaks`), not instant, so a
+pact can't be declared to inflate a defense number for one attack and
+un-declared the moment that attack resolves, exactly the exploit the delay
+is there to close. It mirrors the JV betrayal's two-strike pattern
+(`pact_break_count`, same `REP_TAX_THRESHOLD` of 2): a first declared break
+costs the initiator nothing beyond the relationship itself, a second costs
+them a real, visible Power hit through the same `collect_payment` cascade
+used everywhere else in this file (`PACT_BREAK_PENALTY_PCT`, set equal to
+`REPUTATION_PENALTY_PCT`, the same principle, so the same size). Any live
+JV pot between the two is split evenly on severance (`_sever_alliance`), a
+no-fault wind-down, not a betrayal, so it never touches `drain_count` or
+the reputation penalty a real drain carries.
+
+## Giving it a real trigger: the Raider question from GDD.md Section 8.2
+A mechanic with nobody to exercise it can't be validated, and this file's
+existing Hidden Raider modeling had an unanswered question sitting right
+next to it: should a Raider withhold Defense Pact support from their own
+secretly-assigned target? Passive under-defending has no separate
+representation in this model, defense is derived live from the
+ally/`pact_posture` relationship, there's no "nominally allied but
+secretly not helping" state to add, so the Raider's actual move is
+severing the relationship outright. `consider_raider_pact_break`: once the
+Conflict Phase opens, a Raider allied with their own target has a 50%
+chance per round to initiate a break against them, sabotage, not a
+coincidence. This closes the GDD.md Section 8.2 open question and gives
+the breakup mechanic its only trigger in this bot pod, the same
+"correctly wired, only some archetypes ever touch it" shape already
+established for Gold (Part 12) and the JV reputation penalty (Part 14).
+
+## Result
+Six-player pod, 1500 trials per configuration, `RAIDER_ENABLED` on
+throughout so the trigger has something to fire from:
+
+| Configuration | Top archetype | Gap | Declared breaks/game | Covert breaks/game | Raider success |
+|---|---|---|---|---|---|
+| Clean bots, no Raider, no pact breaks | Socialite 100.0% | 13.6% | -- | -- | -- |
+| Clean bots, Raider on, pact breaks off | Socialite 100.0% | 13.1% | 0.000 | 0.000 | 15.0% |
+| Clean bots, Raider on, pact breaks on | Socialite 99.7% | 12.8% | 0.143 | 0.170 | 16.3% |
+| + mistakes + raid fatigue, pact breaks off | Socialite 83.3% | 10.1% | 0.000 | 0.000 | 17.3% |
+| + mistakes + raid fatigue, pact breaks on | Socialite 81.8% | 10.0% | 0.163 | 0.160 | 15.5% |
+
+Clean by this file's standing bar: Socialite stays the dominant winner, the
+gap stays inside the same band it was already in (10-13%), no archetype
+crosses 50%. The breakup mechanic fires at a real, non-trivial rate
+(roughly 1 declared or covert break every 3-7 games), more often than the
+JV reputation penalty (Part 14, ~0.2% of games) because the trigger here
+only needs a Raider to be allied with their own target at all, not to also
+survive to a *second* drain. Raider success rate moves within a small band
+(15.0-17.3%) with no consistent direction between the clean and realistic
+configurations, noise at this sample size given only roughly 1 Raider per
+6-player game, not a signal either way.
+
+## What Part 15 doesn't cover
+- `PACT_BREAK_PENALTY_PCT` and `RAIDER_PACT_WITHHOLD_CHANCE` were set
+  directly (matching `REPUTATION_PENALTY_PCT` and the existing JV-drain
+  sabotage rate respectively), not independently swept.
+- Non-Raider reasons a real player might break a pact (freeing an ally slot
+  for a better partner once `MAX_ALLIES` is reached, an ordinary falling-out
+  with no sabotage motive) aren't modeled; this bot pod only exercises the
+  mechanic through Raider sabotage.
+- Whether the fork decision (keep JV and Defense Pact merged) still holds
+  once Power Cards or a player-count-scaled round structure are simulated,
+  neither has been tested against this decision.
+
+---
+
+# Part 16 - The full current configuration, swept across player count for the first time
+
+## Why this exists
+A gap named repeatedly and never actually closed: `LEADER_THREATENED_MARGIN`
+(Part 7), the Industries system (Part 12, 13), the Joint Venture rebuild
+(Part 12, 14), Gold, Bank deposits, Co-Founder's final equity form, and the
+Defense Pact breakup mechanic (Part 15), every one of them was validated
+only against the fixed six-player pod. The player-count sweep that actually
+exists (Part 3, Part 9) predates all of it, it only ever tested the older,
+simpler mechanic set. Nobody had run the game's full current recommended
+configuration, everything this file still calls clean or recommended,
+active together, across the 3-7 player range in one pass.
+
+## Method
+Every mechanic this file currently keeps enabled together for the first
+time: Industries and Market Events (with the randomized tier ranges from
+Part 13), Gold, Bank deposits, idle cash erosion, the progressive income
+tax, the Real Estate purchase cost, Co-Founder (equity form), peer-to-peer
+lending, long/short stocks, the Hidden Raider role, the Defense Pact
+breakup mechanic (Part 15), the variable Building Phase length, total-wealth
+capture, and the defender reward. `RAID_FATIGUE_PENALTY` (0.5) and
+`LEADER_THREATENED_MARGIN` (1.05) are already the module's defaults, and
+per-player `mistake_rate` is randomized by default (`HumanPlayer.__init__`),
+so this is "realistic play" exactly the way every other harness in this
+file already means it. `run_player_count_sweep`, unchanged, across
+`[3, 4, 5, 6, 7]`, 1500 trials each.
+
+## Result
+
+| Players | AvgBrokeRounds | AvgDeadRounds | MaxDeadRounds | AvgLockRound (of 15) | AvgTop2Gap% | Top archetype (win rate) | Winner variety |
+|---|---|---|---|---|---|---|---|
+| 3 | 0 | 0 | 0 | 7.1 | 7.3% | Aggressor (44.4%) | 3 |
+| 4 | 0 | 0 | 0 | 8.2 | 7.1% | Socialite (52.8%) | 4 |
+| 5 | 0 | 0 | 0 | 8.2 | 10.4% | Socialite (79.3%) | 4 |
+| 6 | 0.92 | 0.03 | 2 | 8.6 | 11.7% | Socialite (82.7%) | 5 |
+| 7 | 0.79 | 0.02 | 2 | 9.4 | 9.3% | Socialite (67.7%) | 6 |
+
+Compare `AvgLockRound` to Part 9's numbers under the older mechanic set
+(3 -> 1.3, 4 -> 1.9, 5 -> 9.5, 6 -> 10.5, 7 -> 10.9): the catastrophic early
+lock-in at 3-4 players that originally justified excluding them (Section 1,
+Section 10) is gone under the current configuration. 3 players now locks in
+around round 7 of 15, 4 around round 8, both comfortably inside the same
+range 5-7 already occupy, not the "decided by round 2" foregone conclusion
+Part 3 and Part 9 found. `AvgDeadRounds` and `AvgBrokeRounds` stay at or
+near zero everywhere, no elimination-downtime regression from adding this
+much mechanic depth at once.
+
+## What this does not mean: 5-7 stays the right officially supported range
+The lock-round problem that justified excluding 3-4 players is resolved,
+but a **different** problem takes its place, visible only once win rate is
+broken out by archetype rather than just by lock round:
+
+| Players | Winner breakdown |
+|---|---|
+| 3 | Aggressor 44.4%, Turtle 28.6%, Diversifier 27.0% |
+| 4 | Socialite 52.8%, Turtle 18.7%, Diversifier 18.1%, Aggressor 10.5% |
+| 5 | Socialite 79.3%, Diversifier 8.4%, Turtle 7.3%, Aggressor 4.9% |
+| 6 | Socialite 82.7%, Turtle 6.0%, Diversifier 5.9%, Aggressor 5.3%, SoloGrinder 0.1% |
+| 7 | Socialite 67.7%, Casual 16.9%, Aggressor 5.8%, Diversifier 5.1%, Turtle 4.1%, SoloGrinder 0.4% |
+
+At 3 players, the winning archetype flips entirely, from Socialite
+(everywhere else) to Aggressor, a structurally different equilibrium, not
+a slower version of the 5-7 game. At 4, Socialite already crosses the 50%
+line this file has otherwise treated as the "no archetype dominates" bar
+since Part 2's Finding 5, an outcome that would be flagged as a real
+problem at any other player count. 5, 6, and 7 read as expected: Socialite
+dominant but never runaway, healthy archetype variety, consistent with
+every prior validated result at n=6 specifically now confirmed to also hold
+at 5 and 7.
+
+**The honest conclusion**: 5-7 remains the right officially supported
+range, but not for the original reason. The original reason (a foregone
+conclusion locked in almost immediately) no longer applies at 3-4 under
+this configuration. The reason now is archetype-mix dominance, a real,
+different, and not-yet-clean problem, not a re-confirmation of the old one.
+Re-litigating the 3-4 player exclusion would need its own dedicated pass
+(likely a roster-composition question, not a round-count one, since
+`roster_for` fills small pods very differently than 6-7 seat ones), not a
+side effect of this sweep.
+
+## What Part 16 doesn't cover
+- Why n=3 flips to Aggressor specifically and n=4 sits right at the 50%
+  line, this sweep found the effect, not its root cause. Likely
+  roster-composition driven (`roster_for`'s archetype mix at very small
+  player counts), not yet traced.
+- Net-worth tax and the windfall tax stay off, matching their existing
+  "don't ship" and "not independently recommended" status elsewhere in
+  this file, not retested here.
+- Whether a player-count-aware round or Building Phase length would fix
+  the n=3/n=4 archetype-dominance problem better than leaving both at their
+  current fixed values, not tried.
+
+---
+
+# Part 17 - The 3-4 player problem traced to a fixed roster order, and two new archetypes for tables above 7
+
+## Why this exists
+A direct product question: can the supported minimum drop below 5 (not
+every friend group can reliably bring 5 people), and can the maximum go
+above 7? Part 16 left the root cause of n=3/n=4's archetype-dominance
+problem untraced. This part traces it, and separately builds out the
+roster so a maximum-side question can be tested meaningfully at all.
+
+## The root cause: `roster_for` was never actually random at low player counts
+`roster_for(n, rng)` took the first `n` archetypes from a fixed list,
+`base[:n]`, for any n up to 6. That means **every single 3-player game
+in this file's entire testing history used the identical roster**,
+`[Diversifier, Turtle, Aggressor]`, Socialite never appeared at all. Every
+4-player game used the identical `[Diversifier, Turtle, Aggressor,
+Socialite]`, SoloGrinder and Leverager never appeared. This isn't a
+property of "3-4 players," it's a property of "whichever three or four
+archetypes happen to sit first in a hardcoded list," a fixed, unrepresentative
+slice, not a fair sample of what an arbitrary small table of friends would
+actually look like. Every prior finding about 3-4 players in this file
+(Part 3, Part 9, Part 16) inherited this bias without anyone naming it.
+
+**The fix**: `rng.sample(base, n)` instead of `base[:n]`, a genuine random
+n-of-6 subset, different every game, same as how player *assignment* to
+those archetypes already worked, just never applied to which archetypes
+show up at all.
+
+## Result: the dominance problem was mostly the roster bias, not the player count
+Same full configuration as Part 16 (every mechanic this file currently
+recommends, 1500 trials per player count), fixed roster vs. random roster:
+
+| Players | Fixed roster (Part 16) | Random roster (this part) |
+|---|---|---|
+| 3 | Aggressor 44.4%, 3 archetypes ever win | Socialite 38.9%, Aggressor 23.3%, 5 archetypes ever win |
+| 4 | Socialite 52.8%, 4 archetypes ever win | Socialite 47.8%, Aggressor 24.4%, 5 archetypes ever win |
+
+With a fair roster, no archetype crosses 50% at either 3 or 4 players, the
+top archetype is Socialite at both counts (consistent with every other
+player count), and variety improves at both. `AvgLockRound` stays healthy
+(6.5 at n=3, 7.4 at n=4, both comfortably inside the same range 5-7
+already occupy) and `AvgGap%` runs a bit hotter than mid-range player
+counts (16.4% at n=3, 13.8% at n=4, vs 8-12% at n=5-7), an honest,
+expected property of smaller pods (fewer players to average outcomes
+across), not a red flag on its own.
+
+**The honest limit of this finding**: this fixes a real bias in how the
+bots were sampled, it does not, by itself, prove 3-4 human players would
+have a good game, the same caveat every finding in this file carries. What
+it does show is that the *previous* evidence against 3-4 players (Part 3,
+Part 9's original "locked in by round 2, one archetype ever wins") was
+measuring a biased roster as much as it was measuring the player count
+itself, and once that bias is removed, the picture looks substantially
+closer to the officially supported range than previously documented,
+across two entirely different measurements (lock round and win-rate
+variety) taken years apart in this file's own history.
+
+## Two new archetypes, built so a larger table isn't just Casual padding
+Testing whether the maximum can rise above 7 needed a roster that doesn't
+just duplicate the same first-time-player stand-in over and over.
+`EXTENDED_ARCHETYPES` adds two, both reusing existing mechanics rather than
+inventing new plumbing:
+- **The Speculator**: 60% of new cash into a Market/Industry position (vs.
+  the 15-35% every other archetype spares for it as a side allocation),
+  15% company, 10% Real Estate, the rest cash. Nobody in the original
+  roster treats the Market as a *primary* strategy, this tests what a
+  concentrated, no-special-information bettor actually looks like.
+- **The Prepper**: 65% of new cash held as spare cash, 25% Real Estate, 10%
+  company, no company/growth ambition at all. Deliberately reuses
+  `apply_gold_hedge` (now includes Prepper) and `manage_bank_deposits`'s
+  automatic idle-cash sweep rather than building a second hedging path,
+  both already do exactly the job a hoarding archetype needs.
+
+`roster_for` now fills seat 8 and 9 with these two before falling back to
+repeated Casuals at 10+.
+
+## Result: 8 looks clean, 9 is borderline, 10 is not
+Same full configuration, random-roster fix active, 1500 trials:
+
+| Players | Top archetype | Gap% | Winner variety | Notable |
+|---|---|---|---|---|
+| 8 | Socialite 68.7% | 8.5% | 7 archetypes | Comparable shape to n=7, Speculator wins ~0.1% of games |
+| 9 | Socialite 57.7% | 7.7% | 8 archetypes | Casual's share (17.5%) is disproportionate, driven by a real seat, not a duplicate yet |
+| 10 | Socialite 49.5% | 7.2% | 7 archetypes | Casual's share balloons to 30.0%, this table now has **two** duplicate Casual bots, an artifact of roster padding, not a genuine 10-player signal |
+
+8 players reads as clean, directly comparable to 7 on every metric this
+file tracks. 9 is plausible but the extra seat still falls to a single
+Casual rather than a third new archetype. 10 is not recommendable as
+tested: the jump in Casual's win share is a modeling artifact (two
+identical bots inflating one archetype's count), not evidence about how a
+real 10-player table would actually play, and shouldn't be read as a
+finding about the player count itself.
+
+## Recommendation
+Both ends of the player range have real, positive evidence behind
+reconsidering them, but this is a product scope decision, not a numbers
+one, the numbers just took the guesswork out of it:
+- **3-4 players**: the specific evidence that excluded them (Part 3, Part
+  9) was measuring a biased, unrepresentative roster as much as the player
+  count. With that fixed, both look comparable to the officially supported
+  range on every metric this file tracks. Worth a real look at lowering the
+  minimum, with the same "bots aren't playtesting" caveat this file always
+  carries.
+- **8 players**: clean on every metric, a defensible addition to the
+  maximum with the two new archetypes now in place.
+- **9-10 players**: not yet clean, the roster still leans on duplicate
+  Casual bots to fill the table. A genuine 9th archetype, not another
+  Casual copy, would need to exist before recommending either.
+
+## What Part 17 doesn't cover
+- A third and fourth new archetype for 9-10 players to stop relying on
+  duplicate Casuals, not built.
+- Whether the wider `AvgGap%` at 3-4 players (13-16% vs 8-12% at 5-8)
+  settles with more trials or is a real, permanent property of smaller
+  pods, only one seed's worth of trials run here.
+- Retesting Parts 1-15's individual findings (each validated at n=6 only)
+  specifically at n=3, 4, or 8, only the full-combined configuration was
+  swept here, the same scope limit Part 16 already named.
+- Human playtesting at any player count, still zero, still the top
+  blocker this file cannot resolve on its own.
