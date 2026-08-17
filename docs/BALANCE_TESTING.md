@@ -2245,3 +2245,109 @@ directly: `[p.power_card for p in players]` at n=10 now contains no
 - Player counts above 10, not attempted, the 7-card Power Cards deal
   already needs more than one duplicate at 9+ (see above), an 11th seat
   would need its own archetype and a decision about the Power Cards deck too.
+
+---
+
+# Part 23 - Disconnection handling, a real exploit caught mid-design, and Gold joins defense
+
+## Why this exists
+Two review items closed together, requested directly: what happens when a
+player has to step away mid-game (Major, unaddressed since Draft 2), and
+whether Gold should count toward defense alongside Real Estate, a real
+question raised directly, gold as a safe-haven asset is a genuine,
+long-standing cultural pattern, not an arbitrary ask.
+
+## Disconnection handling: a round timer, an early-skip, a hold default, and a vote
+Every round runs against a real clock (a **3-minute timer**, a deliberate
+middle ground: at 15 rounds, a 3-minute cap keeps the round loop's worst
+case at 45 minutes, still leaving buffer inside the "under an hour" pitch,
+without cutting decision time so tight that a busy Conflict Phase round
+feels rushed). Any round ends the moment every active player signals
+ready, so the cap is a ceiling most rounds won't hit, not the expected
+pace. If the timer expires on a player who hasn't acted, their round
+holds: the same `autopilot_allocation` logic already used to model a
+distracted bot (repeat last round's split, no new JV, no Power Card
+claim, no Audit), the same "civil disorder" convention Diplomacy already
+uses for missed orders, a design this game already borrows from (Section
+5's Syndicate Move math).
+
+**If a player looks genuinely gone**, any other active player can call a
+vote once that player has missed at least one round via timeout. A strict
+majority of the table's other still-active players passes it.
+
+## A real exploit caught before it shipped
+The first version of the passed-vote consequence, proposed directly, was
+to freeze the player's company entirely: no income, no allocation, and
+**immune from being attacked while frozen**. Caught immediately, in the
+same conversation that proposed it: a player could get themselves voted
+out on purpose, or simply never come back, and sit shielded from every
+attack for the rest of a 15-round game, exactly the "don't let
+disconnecting become a shield" failure this whole mechanic exists to
+prevent, not fix it.
+
+**The fix: route a passed vote through the exact same Board Observer path
+a bankrupted or fully-taken-over player already uses** (Section 8.4), not
+a new status. `HumanPlayer.afk_kicked`, once set, makes `is_broke()`
+return `True` regardless of actual wealth, so the entire existing Board
+Observer, Co-Founder recruitment, and final-round backing tiebreak
+machinery picks the player up automatically, zero new plumbing needed
+there. The round loop skips `generate_income_human` and `allocate_human`
+for a flagged player, so their holdings freeze exactly where the vote
+left them, but **a Board Observer's holdings are never immune from
+attack**, whatever they had at the moment of the vote stays a completely
+real, fully attackable target, arguably a more attractive one now that it
+can't actively defend itself either. Reconnecting simply resumes normal
+play from the current round, the same way a Co-Founder's host can already
+buy them back into active play.
+
+Verified directly: an `afk_kicked` player is confirmed broke via
+`is_broke()` regardless of their actual cash/company values, and a
+full `simulate_game` run with a flagged player confirms their income and
+allocation are both skipped for the rest of the game.
+
+## Gold joins the defense formula
+`GOLD_DEFENSE_WEIGHT = 0.6`, between cash's 0.3x and Real Estate's 0.9x:
+real defensive credit for holding Gold, the cultural "gold as safety"
+framing is a legitimate, real pattern, but deliberately less than Real
+Estate. The rest of the defense formula isn't really about *value*, it's
+about *seizure-resistance*, Real Estate earns its 0.9x specifically
+because it's illiquid and costly to convert (a 15% haircut). Gold is
+deliberately the opposite, a 5% haircut, easy to convert (Part 20), so
+weighting it equally to Real Estate would contradict the formula's own
+logic even while honoring the cultural point. `defense_power_of_human`
+extends the base game's `defense_power_of` (which predates Gold and has
+no such attribute) with this term, used for both the true defense
+combat resolves against and the visible defense an attacker can see.
+Cash's existing 0.3x weight is unchanged, deliberately: it's already
+validated (Part 2), and nothing about adding Gold requires disturbing it.
+
+## Result
+Full current configuration, 1500 trials, Gold-in-defense active alongside
+everything else:
+
+| Players | Winner breakdown |
+|---|---|
+| 6 | Socialite 71.9%, Diversifier 11.1%, Turtle 10.6%, Aggressor 5.8%, SoloGrinder 0.6%, Leverager 0.1% |
+| 8 | Socialite 55.6%, Prepper 18.5%, Turtle 12.1%, Diversifier 10.4%, Aggressor 2.0%, SoloGrinder 1.0%, Speculator 0.4% |
+| 10 | Socialite 41.8%, Momentum 25.3%, Prepper 10.3%, Turtle 7.1%, Diversifier 6.7%, Operator 5.3%, Aggressor 2.7%, SoloGrinder 0.6%, Speculator 0.1% |
+
+Consistent with every other reading of this configuration (Socialite
+71-74% / 54-58% at n=6/8 across Parts 16-22). At n=10, Socialite drops
+further (47.8% -> 41.8%) and Prepper and Momentum both pick up share,
+the expected direction: Prepper is the archetype that actually hedges
+into Gold, and a defense boost for the archetypes already playing
+cautious widens their edge slightly rather than helping Aggressor, the
+same healthy pattern every clean addition in this file has produced.
+
+## What Part 23 doesn't cover
+- The disconnection timer, early-skip, and vote mechanics are session/
+  connectivity design, not something `sim/human_sim.py`'s bots can
+  simulate, they never disconnect. The state-handling side
+  (`afk_kicked`, `is_broke()`) is built and verified; the human-pacing
+  side ("does 3 minutes feel right") needs real playtesting, the same
+  caveat every mechanic in this file carries, sharper here.
+- `GOLD_DEFENSE_WEIGHT` (0.6) was chosen directly as a defensible midpoint,
+  not swept against alternate values.
+- Whether an `afk_kicked` player who's since accumulated a large frozen
+  position creates any new dynamic once Power Cards or the Hidden Raider
+  role specifically target them, not tested in combination.

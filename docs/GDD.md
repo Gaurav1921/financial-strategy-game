@@ -111,6 +111,64 @@ round. Power Card plays and Declare/Audit challenges slot into steps 2 and
 5, wherever the claim is actually made. Matches `sim/human_sim.py`'s
 `simulate_game` loop exactly.
 
+### 4.1 When someone steps away
+
+Every round, in Live Mode, runs against a real clock: a **3-minute
+timer**, chosen directly as a middle ground between two competing
+pressures. At 15 rounds, a 3-minute cap puts the round loop's absolute
+worst case at 45 minutes, still leaves real buffer inside the pitch's
+"under an hour" target (Section 1) for onboarding, reading scenario text
+aloud, and actual table talk, without cutting decision time so tight that
+a genuinely busy round (Conflict Phase, several Power Card claims in
+flight) feels rushed. **Any round ends early the moment every active
+player signals ready**, so a 3-minute cap is a ceiling most rounds won't
+actually hit, not the expected pace.
+
+**If the timer expires and a player hasn't acted**, their round defaults
+to a hold: their new income is split exactly the way their last round's
+was (the same `autopilot_allocation` logic `sim/human_sim.py` already uses
+to model a distracted bot, now doing the identical job for a real person
+who didn't answer in time). No new Joint Venture forms, no Power Card
+claim goes out, no Audit gets called on their behalf, a true hold, not a
+proxy deciding *for* them. Borrowed directly from Diplomacy's "civil
+disorder" convention (a player who misses orders just holds their current
+position), a genre-standard pattern this design already leans on
+elsewhere (Section 5 item 6's Syndicate Move math).
+
+**If a player misses a round entirely and looks genuinely gone**, not just
+slow, any other active player can call a vote once that player has missed
+at least one round via timeout (a safeguard against voting out someone
+who's simply still deciding). A strict majority of the table's other
+still-active players (already-eliminated players don't vote) passes it.
+
+**A passed vote routes them through the exact same Board Observer path a
+bankrupted or fully-taken-over player already uses** (Section 8.4), not a
+separate "frozen" status. An earlier draft of this rule froze the
+player's company in place instead, immune from attack while gone, and it
+was correctly caught as a real exploit: a player could get themselves
+voted out on purpose (or simply never come back) and sit shielded for the
+rest of a 15-round game, the opposite of what a disconnection rule should
+do. Reusing the Board Observer path closes that outright: their company
+stops changing (`is_broke()` treats a voted-out player as broke
+regardless of actual wealth, so income and allocation both stop for
+them), but a Board Observer's holdings are never immune, whatever they
+had at the moment of the vote stays a completely real, fully attackable
+target, arguably now a more attractive one, since it can't grow but also
+can't actively defend itself either. They can be recruited as a
+Co-Founder by a living player exactly like any other Board Observer,
+or fall back to backing someone for the final-round tiebreak. **If they
+reconnect**, they simply resume playing normally from the current round,
+the same way a Co-Founder's host can already buy them back into active
+play (Section 8.4).
+
+Not yet simulated (this is a session/connectivity mechanic, not a
+Power-calculation one, `sim/human_sim.py`'s bots never actually disconnect,
+though `HumanPlayer.afk_kicked` and the `is_broke()` check that reads it
+are built and ready for a real backend to set) and not yet playtested,
+the same caveat every mechanic in this file carries, sharper here since
+"does a 3-minute timer feel right"
+is entirely a human-pacing question no bot can answer.
+
 ## 5. The six ways to make money
 Every round, you choose how to spread your money across six different
 options - not just "grow one number." This is the actual financial-strategy
@@ -223,6 +281,10 @@ part of the game.
    is the deliberately liquid asset here, a forced sale of it isn't the
    same kind of transaction as a distress sale of illiquid property. See
    BALANCE_TESTING.md Part 20.
+   **Now counts toward defense too** (Section 6), at 0.6x per unit,
+   between cash's 0.3x and Real Estate's 0.9x: a real, if smaller,
+   defensive credit for a safe-haven asset without treating it as hard to
+   seize as Real Estate, since it's deliberately the easy-to-convert one.
 
 ## 5A. Industries and Market Events
 
@@ -405,11 +467,12 @@ ruleset yet, see BALANCE_TESTING.md Parts 6, 9, 12):**
 
 | Mechanic | Rate |
 |---|---|
-| Takeover / counter-attack capture | 25% of the target's *total* wealth, cash first, then Company, then Real Estate |
+| Takeover / counter-attack capture | 25% of the target's *total* wealth, cash first, then Company, then Real Estate, then Gold |
 | Failed attack penalty | Attacker loses 50% of what they staked, split evenly between the defender and the Bank |
 | JV drain split | 65/35 to the drainer if only one side drains, 40/40 (20% lost to friction) if both drain the same round, 50/50 if neither drains |
 | Second proven JV betrayal | An immediate, visible ~15% hit to the drainer's own total Power, docked the instant a second drain is confirmed (across any of their JVs); a first drain costs nothing beyond the relationship itself |
 | "Gang up on the leader" trigger | Any player whose total Power exceeds 1.05x the second-place player's becomes a valid counter-attack target |
+| Defense weight per unit | Real Estate 0.9x, Gold 0.6x, cash 0.3x |
 
 ## 6. Combat: attacking and defending
 
@@ -457,8 +520,13 @@ the live game will actually have.
 - **Attack power is your cash only** (a portion of it), plus allies
   backing you, **not your Company, Real Estate, or stock holdings.** Those
   grow your Power but don't arm you; only liquid cash does.
-- **Defense is Real Estate (heavily) plus a portion of cash**, plus allies
-  defending you, **also not Company or stocks.**
+- **Defense is Real Estate (heavily), Gold (moderately), and a portion of
+  cash**, plus allies defending you, **also not Company or stocks.** Gold
+  counts for real (0.6x per unit, between cash's 0.3x and Real Estate's
+  0.9x) but less than Real Estate: it's deliberately the liquid,
+  easy-to-convert safe-haven asset (a 5% haircut vs. Real Estate's 15%,
+  Section 5), so it earns real defensive credit without being treated as
+  hard to seize as the asset that actually is.
 - **When can you attack?** Any time in the Conflict Phase where your
   attack power exceeds the target's defense, both derived values above,
   not a direct comparison of total Power.

@@ -60,7 +60,6 @@ from power_simulation import (
     TOTAL_ROUNDS,
     Player,
     allocate,
-    defense_power_of,
 )
 
 INDUSTRIES = [
@@ -369,14 +368,26 @@ class HumanPlayer(Player):
         )
         self.banker_waiver_pending = False  # next interest accrual uses the flat base rate, see resolve_power_card_claims
         self.analyst_perception_shock = 0.0  # a multiplier on this player's visible defense for the rest of this round only
+        self.afk_kicked = False  # voted out for being disconnected (GDD.md Section 4.1), routed through the same
+        # Board Observer path as bankruptcy, no separate state machine, see is_broke()
 
     def is_broke(self):
         """Has next to nothing left to allocate, the raw financial condition,
         independent of whether they've found something else to do about it.
+        A player voted out for being disconnected (`afk_kicked`) counts as
+        broke here regardless of actual wealth, on purpose: GDD.md Section
+        4.1 routes them through the exact same Board Observer path a
+        bankrupted player uses, deliberately not a new status of their own,
+        so recruitment, backing, and the final-round tiebreak all already
+        just work.
         """
-        return self.bankrupt or (
-            self.cash < DISENGAGED_CASH_THRESHOLD
-            and self.company < DISENGAGED_COMPANY_THRESHOLD
+        return (
+            self.bankrupt
+            or self.afk_kicked
+            or (
+                self.cash < DISENGAGED_CASH_THRESHOLD
+                and self.company < DISENGAGED_COMPANY_THRESHOLD
+            )
         )
 
     def is_disengaged(self):
@@ -1321,6 +1332,28 @@ def resolve_power_card_claims(players, rng, is_building, stats):
 ALLIANCE_VISIBILITY_ENABLED = True
 
 
+GOLD_DEFENSE_WEIGHT = (
+    0.6  # between cash's 0.3x and Real Estate's 0.9x: real defensive credit
+)
+# for a safe-haven asset (GDD.md Section 5), but less than Real Estate, since Gold is
+# deliberately the liquid, easy-to-convert one (a 5% haircut, Part 20, vs Real Estate's 15%),
+# the opposite of what makes an asset actually hard for an attacker to reach
+
+
+def defense_power_of_human(target, players):
+    """The base game's `defense_power_of` (power_simulation.py) predates
+    Gold, its Player class has no such attribute. This is the same formula
+    with Gold added at its own weight when GOLD_ENABLED, the "true"
+    (not just visible) defense used to resolve an actual attack.
+    """
+    dp = target.real_estate * 0.9 + target.cash * 0.3
+    if GOLD_ENABLED:
+        dp += target.gold * GOLD_DEFENSE_WEIGHT
+    for ally_idx in target.allies:
+        dp += players[ally_idx].cash * 0.3
+    return dp * DEFENDER_TIE_BONUS
+
+
 def defense_power_visible(target, players):
     """What an attacker can actually see before committing: own assets plus
     only the Defense Pacts that partner declared. Covert allies are real
@@ -1331,8 +1364,10 @@ def defense_power_visible(target, players):
     an attack on their actual wealth, see `clear_analyst_shocks`.
     """
     if not ALLIANCE_VISIBILITY_ENABLED:
-        return defense_power_of(target, players)
+        return defense_power_of_human(target, players)
     dp = target.real_estate * 0.9 + target.cash * 0.3
+    if GOLD_ENABLED:
+        dp += target.gold * GOLD_DEFENSE_WEIGHT
     for ally_idx in target.allies:
         if target.pact_posture.get(ally_idx, False):
             dp += players[ally_idx].cash * 0.3
@@ -1411,7 +1446,7 @@ def attempt_takeovers_human(players, rng, current_round, stats, bank):
             continue
         target = pick_target(attacker, beatable, players, rng)
 
-        true_defense = defense_power_of(target, players)
+        true_defense = defense_power_of_human(target, players)
         stake = attacker.cash * 0.5
         stats["attempts"] += 1
         if attack_power > true_defense and try_guardian_block(target, stats):
@@ -1498,7 +1533,7 @@ def attempt_counter_attacks_human(
         # earlier hit this same round is a softer target for the next
         # challenger, a coalition finishes the job in one round instead of
         # needing several separate rounds to grind them down
-        true_defense = defense_power_of(leader, players)
+        true_defense = defense_power_of_human(leader, players)
         stats["counter_attempts"] += 1
         if attack_power > true_defense and try_guardian_block(leader, stats):
             penalize_failed_attacker(
@@ -2499,10 +2534,14 @@ def simulate_game(n_players, rng, total_rounds=TOTAL_ROUNDS, building_rounds=Non
         finalize_pending_pact_breaks(players, stats)
 
         for p in players:
+            if p.afk_kicked:
+                continue  # frozen exactly where the vote left them, GDD.md Section 4.1
             generate_income_human(p, bank, stats, players, rng, scenario_deltas)
             apply_bank_deposit_interest(p, stats)
         settle_peer_defaults(players, stats)
         for p in players:
+            if p.afk_kicked:
+                continue
             debt_before = p.debt
             allocate_human(p, players, rng, rnd, scenario_deltas)
             if p.archetype == "Leverager":
