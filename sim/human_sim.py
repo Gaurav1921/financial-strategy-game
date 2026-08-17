@@ -312,7 +312,11 @@ class HumanPlayer(Player):
         self.grudge_bias = rng.uniform(0.0, 0.6)
         self.mistake_rate = rng.uniform(0.03, 0.25)
         self.bandwagon_bias = rng.uniform(0.0, 0.4)
-        self.declare_bias = rng.uniform(0.2, 0.8)
+        # Operator leans into Power Cards by design (see operator_allocation): a
+        # naturally higher declare_bias range, not a second special-cased probability system
+        self.declare_bias = (
+            rng.uniform(0.6, 0.95) if archetype == "Operator" else rng.uniform(0.2, 0.8)
+        )
         self.last_attacker_idx = None
         self.dead_rounds = 0
         self.broke_rounds = (
@@ -360,6 +364,11 @@ class HumanPlayer(Player):
             False  # at most one bluffed claim per game, see resolve_power_card_claims
         )
         self.hesitant_until_round = 0  # round number a Post-Hit Hesitation window (see apply_fear_hesitation) ends
+        self.power_card_block_used = (
+            False  # this player's own card block, once-per-game, see try_guardian_block
+        )
+        self.banker_waiver_pending = False  # next interest accrual uses the flat base rate, see resolve_power_card_claims
+        self.analyst_perception_shock = 0.0  # a multiplier on this player's visible defense for the rest of this round only
 
     def is_broke(self):
         """Has next to nothing left to allocate, the raw financial condition,
@@ -452,11 +461,22 @@ def generate_income_human(p, bank, stats, players, rng, scenario_deltas=None):
         p.round_profit += gold_gain
 
     if p.debt > 0 and not p.bankrupt:
-        pre_debt_power = (
-            p.cash + p.company + p.real_estate + sum(p.stocks.values()) + p.captured
-        )
-        leverage_ratio = p.debt / max(1.0, pre_debt_power)
-        rate = LOAN_INTEREST_BASE + LOAN_RISK_PREMIUM * leverage_ratio
+        if p.banker_waiver_pending:
+            # Banker's Easy Terms and Standstill (GDD.md Section 8.1) both
+            # collapse to the same mechanical effect here: the leverage risk
+            # premium is waived for one interest accrual, deliberately
+            # applying to the round after the claim (income resolves before
+            # a round's Power Card claims do), not the same round, the same
+            # "takes effect next" shape the Defense Pact breakup penalty
+            # already uses (Section 7).
+            rate = LOAN_INTEREST_BASE
+            p.banker_waiver_pending = False
+        else:
+            pre_debt_power = (
+                p.cash + p.company + p.real_estate + sum(p.stocks.values()) + p.captured
+            )
+            leverage_ratio = p.debt / max(1.0, pre_debt_power)
+            rate = LOAN_INTEREST_BASE + LOAN_RISK_PREMIUM * leverage_ratio
         p.debt *= 1 + rate
 
     if p.total_power() < 0 and not p.bankrupt:
@@ -648,6 +668,44 @@ def prepper_allocation(p, players, rng):
     p.cash = cash_available * 0.65
 
 
+def operator_allocation(p, players, rng):
+    """Tests a player who leans hard into Power Cards (Section 8.1) rather
+    than a concentrated financial position, behaviorally simple everywhere
+    else (a balanced, Diversifier-like split), but given a naturally
+    higher `declare_bias` at deal time (see HumanPlayer.__init__), so claim
+    and Audit chances (`_power_card_claim_chance`, `_power_card_audit_chance`)
+    run well above the table average without a second, special-cased
+    probability system. Keeps a larger cash reserve than most archetypes:
+    both claiming and Auditing cost real cash (Section 8.3).
+    """
+    cash_available = p.cash
+    p.company += cash_available * 0.30
+    p.real_estate += cash_available * 0.25
+    target = rng.choice([q for q in players if q.idx != p.idx])
+    p.stocks[target.idx] = p.stocks.get(target.idx, 0) + cash_available * 0.20
+    p.cash = cash_available * 0.25
+
+
+def momentum_allocation(p, players, rng, scenario_deltas):
+    """Chases whichever asset class read stronger this round, a real,
+    distinct behavioral pattern ("the hot hand") no existing archetype
+    models: everyone else plays a fixed split regardless of what the
+    scenario just did. Falls back to an even-ish default split without
+    Industries active, there's no signal to chase without a scenario
+    delta to compare.
+    """
+    cash_available = p.cash
+    company_lean, re_lean = 0.45, 0.25
+    if scenario_deltas:
+        company_delta = scenario_deltas.get(p.industry, 0.0) if p.industry else 0.0
+        re_delta = scenario_deltas.get("Property", 0.0) * REAL_ESTATE_SCENARIO_DAMPENER
+        if re_delta > company_delta:
+            company_lean, re_lean = 0.25, 0.45
+    p.company += cash_available * company_lean
+    p.real_estate += cash_available * re_lean
+    p.cash = cash_available * (1.0 - company_lean - re_lean)
+
+
 def apply_gold_hedge(p, rng):
     """A simple, defensible default for who bothers hedging: Turtle
     (already defense-first) and Diversifier (already spreads across
@@ -709,7 +767,7 @@ def apply_fear_hesitation(p, current_round, company_before, re_before, stocks_be
         p.cash += added * clawback
 
 
-def allocate_human(p, players, rng, current_round=1):
+def allocate_human(p, players, rng, current_round=1, scenario_deltas=None):
     """Wraps the rational archetype allocation with mistakes."""
     cash_available = p.cash
     if rng.random() < p.mistake_rate:
@@ -724,6 +782,10 @@ def allocate_human(p, players, rng, current_round=1):
         speculator_allocation(p, players, rng)
     elif p.archetype == "Prepper":
         prepper_allocation(p, players, rng)
+    elif p.archetype == "Operator":
+        operator_allocation(p, players, rng)
+    elif p.archetype == "Momentum":
+        momentum_allocation(p, players, rng, scenario_deltas)
     else:
         allocate(p, players, rng)
     if INDUSTRY_EVENTS_ENABLED:
@@ -1050,21 +1112,29 @@ POWER_CARD_BLUFF_CHANCE = (
 POWER_CARD_AUDIT_CHANCE = (
     0.25  # per claim, chance a random other living player audits it
 )
-# The three cards whose action is a clean, unconditional number (GDD.md Section 8.1): a
-# capital raise, a smaller-than-a-takeover capture, and a cash skim. Guardian and Analyst's
-# Countermeasure are blocks, not modeled this pass (see resolve_power_card_claims' docstring);
-# Banker's benefit is conditional on actually wanting a loan, and Insider/Analyst's payoff is
-# information a fixed-behavior bot has no way to act on, so those three are still claimed and
-# auditable, contributing real cost and bluff/audit texture, but carry no separate Power effect yet.
-POWER_CARD_MODELED_ACTIONS = ("Financier", "Marauder", "Broker")
+# Five of seven cards now have a modeled, numeric effect (BALANCE_TESTING.md Parts 18, 21):
+# Financier, Marauder, and Broker have clean, unconditional numbers. Banker's two halves
+# (Easy Terms, Standstill) collapse to one mechanical effect, waiving the leverage risk
+# premium on the player's next interest accrual, since both describe the same underlying
+# benefit (cheaper debt) from different angles. Analyst's Report shifts the target's visible
+# defense for the rest of the round, a real, if reinterpreted, take on "a perception shock,
+# not real wealth" (the original text specified Company value, which nothing in this game's
+# combat math actually reads, defense is Real Estate and cash only, see defense_power_visible).
+# Guardian's block is modeled too, but reactively, at the moment an attack would land, not
+# through this claim pipeline, see try_guardian_block. Still unmodeled: Analyst's Expose and
+# Insider's Tip-Off, both a pure information payoff a fixed-behavior bot has no way to act on.
+POWER_CARD_MODELED_ACTIONS = ("Financier", "Marauder", "Broker", "Banker", "Analyst")
+ANALYST_PERCEPTION_SHOCK_PCT = 0.15  # matches the JV reputation penalty and Audit lying penalty, GDD.md Section 8.1
 
 
 def assign_power_cards(players, rng):
     """Deals each player one of the 7 card types, no duplicates, up to 7
-    players. At 8 (GDD.md Section 1's new upper bound, one seat past the
-    original 7-card design), exactly one type repeats: a real, named
-    simplification, not a rules gap nobody noticed, an 8th card is a real
-    design task of its own, not a side effect of a player-count sweep.
+    players. Above 7 (GDD.md Section 1's range now runs to 10, past the
+    original 7-card design), extra seats each get one more randomly
+    repeated type: a real, named simplification, not a rules gap nobody
+    noticed, a full 8th-through-10th card set is a real design task of its
+    own, not a side effect of a player-count sweep. Every seat gets a real
+    card either way, never left unassigned.
     """
     if not POWER_CARDS_ENABLED:
         return
@@ -1073,14 +1143,15 @@ def assign_power_cards(players, rng):
     if n <= len(types):
         dealt = rng.sample(types, n)
     else:
-        dealt = types + [rng.choice(types)]
+        dealt = types + [rng.choice(types) for _ in range(n - len(types))]
         rng.shuffle(dealt)
-        dealt = dealt[:n]
     for p, card in zip(players, dealt):
         p.power_card = card
 
 
-def _resolve_power_card_action(claimed_card, claimant, players, rng, is_building):
+def _resolve_power_card_action(
+    claimed_card, claimant, players, rng, is_building, stats
+):
     """Applies the Power/cash effect of a successfully resolved claim (a
     true claim, or a bluff nobody audited), for the three cards with a
     clean, unconditional numeric effect (see POWER_CARD_MODELED_ACTIONS).
@@ -1098,6 +1169,8 @@ def _resolve_power_card_action(claimed_card, claimant, players, rng, is_building
         if not candidates:
             return False
         target = max(candidates, key=lambda q: q.cash + q.company)
+        if try_guardian_block(target, stats):
+            return True  # the claim still resolves, the capture just doesn't
         captured = collect_payment(target, 0.10 * target.total_power())
         claimant.cash += captured
         return True
@@ -1112,7 +1185,63 @@ def _resolve_power_card_action(claimed_card, claimant, players, rng, is_building
         target.cash -= skimmed
         claimant.cash += skimmed
         return True
+    if claimed_card == "Banker":
+        claimant.banker_waiver_pending = True
+        return True
+    if claimed_card == "Analyst":
+        candidates = [q for q in players if q.idx != claimant.idx and not q.bankrupt]
+        if not candidates:
+            return False
+        target = rng.choice(candidates)
+        # bots don't have a read on a specific target worth shrinking or
+        # inflating, so the direction is a coin flip, a real player would
+        # choose deliberately (deter an attacker, or paint someone as an
+        # easier mark than they are)
+        direction = rng.choice((1.0, -1.0))
+        target.analyst_perception_shock += direction * ANALYST_PERCEPTION_SHOCK_PCT
+        return True
     return False
+
+
+def try_guardian_block(target, stats):
+    """Guardian's block (GDD.md Section 8.1) is reactive by design, it only
+    matters at the exact moment an attack would otherwise land, which
+    doesn't fit `resolve_power_card_claims`'s proactive claim/audit
+    pipeline, so it's checked directly inside combat resolution instead.
+    Only a genuine Guardian cardholder can use it in this pass, bluffing a
+    block (claiming Guardian to save yourself, risking an audit mid-attack)
+    is real texture for a future pass, not modeled here.
+    """
+    if not POWER_CARDS_ENABLED or target.power_card != "Guardian":
+        return False
+    if target.power_card_block_used:
+        return False
+    target.power_card_block_used = True
+    stats["power_card_guardian_blocks"] += 1
+    return True
+
+
+def _power_card_claim_chance(p, base):
+    """Individual variation on top of the flat base rate, reusing
+    `declare_bias` (0.2-0.8, already governs how readily a player declares
+    a Defense Pact, Section 7) rather than inventing a second trait: a
+    player already modeled as bolder about public claims is bolder about
+    Power Card claims too. Real per-player variation, not real strategic
+    timing, see resolve_power_card_claims' docstring.
+    """
+    return base * (p.declare_bias / 0.5)
+
+
+def _power_card_audit_chance(auditor, claimant, base):
+    """A grudge (already used for attack targeting, `pick_target`) makes a
+    player more likely to Audit someone who's hit them before, a real,
+    if simple, "I don't trust them specifically" signal, reusing
+    `grudge_bias` (0.0-0.6) rather than a flat, identical suspicion level
+    for every claim regardless of history.
+    """
+    if auditor.grudge_bias > 0 and auditor.last_attacker_idx == claimant.idx:
+        return min(1.0, base + auditor.grudge_bias * 0.3)
+    return base
 
 
 def resolve_power_card_claims(players, rng, is_building, stats):
@@ -1124,10 +1253,13 @@ def resolve_power_card_claims(players, rng, is_building, stats):
     `AUDIT_COST`, a failed Audit (the claim was true) refunds the auditor
     from the claimant, a caught lie costs the claimant `AUDIT_LIE_PENALTY_PCT`
     of their current Power and voids the claimed effect entirely, the exact
-    asymmetry Section 8.3 specifies. Block halves (Guardian, Broker's Vault,
-    Banker's Standstill, Analyst's Countermeasure) aren't simulated yet,
-    they're reactive and need to be threaded into combat resolution order,
-    a real follow-up, not this pass.
+    asymmetry Section 8.3 specifies. Claim, bluff, and audit chances scale
+    per-player off existing traits (`declare_bias`, `grudge_bias`) instead
+    of an identical flat rate for everyone, real individual variation, still
+    not real strategic bluffing (no timing based on pot size or reading who
+    suspects them specifically), that's a separate, larger piece of work.
+    Guardian's block is handled separately, reactively, in combat
+    resolution (`try_guardian_block`), not through this claim pipeline.
     """
     if not POWER_CARDS_ENABLED:
         return
@@ -1136,9 +1268,13 @@ def resolve_power_card_claims(players, rng, is_building, stats):
             continue
         claimed_card = None
         is_bluff = False
-        if not p.power_card_action_used and rng.random() < POWER_CARD_CLAIM_CHANCE:
+        if not p.power_card_action_used and rng.random() < _power_card_claim_chance(
+            p, POWER_CARD_CLAIM_CHANCE
+        ):
             claimed_card = p.power_card
-        elif not p.power_card_has_bluffed and rng.random() < POWER_CARD_BLUFF_CHANCE:
+        elif not p.power_card_has_bluffed and rng.random() < _power_card_claim_chance(
+            p, POWER_CARD_BLUFF_CHANCE
+        ):
             claimed_card = rng.choice(
                 [c for c in POWER_CARD_TYPES if c != p.power_card]
             )
@@ -1148,8 +1284,15 @@ def resolve_power_card_claims(players, rng, is_building, stats):
             continue
 
         auditors = [q for q in players if q.idx != p.idx and not q.bankrupt]
-        audited = bool(auditors) and rng.random() < POWER_CARD_AUDIT_CHANCE
-        auditor = rng.choice(auditors) if audited else None
+        auditor = None
+        if auditors:
+            auditor = rng.choice(auditors)
+            audit_chance = _power_card_audit_chance(auditor, p, POWER_CARD_AUDIT_CHANCE)
+            audited = rng.random() < audit_chance
+            if not audited:
+                auditor = None
+        else:
+            audited = False
 
         if audited:
             auditor.cash -= AUDIT_COST
@@ -1164,7 +1307,7 @@ def resolve_power_card_claims(players, rng, is_building, stats):
             stats["power_card_failed_audits"] += 1
 
         resolved = _resolve_power_card_action(
-            claimed_card, p, players, rng, is_building
+            claimed_card, p, players, rng, is_building, stats
         )
         if claimed_card == p.power_card and not is_bluff:
             p.power_card_action_used = True
@@ -1182,7 +1325,10 @@ def defense_power_visible(target, players):
     """What an attacker can actually see before committing: own assets plus
     only the Defense Pacts that partner declared. Covert allies are real
     defenders at resolution but invisible here, on purpose, this is the
-    mechanic that lets a target look weaker than they are.
+    mechanic that lets a target look weaker than they are. An Analyst's
+    Report (GDD.md Section 8.1), when active, shifts this specifically,
+    not the target's real Power, a one-round perception shock rather than
+    an attack on their actual wealth, see `clear_analyst_shocks`.
     """
     if not ALLIANCE_VISIBILITY_ENABLED:
         return defense_power_of(target, players)
@@ -1190,7 +1336,16 @@ def defense_power_visible(target, players):
     for ally_idx in target.allies:
         if target.pact_posture.get(ally_idx, False):
             dp += players[ally_idx].cash * 0.3
+    dp *= 1.0 + target.analyst_perception_shock
     return dp * DEFENDER_TIE_BONUS
+
+
+def clear_analyst_shocks(players):
+    """An Analyst's Report only lasts the round it was declared in
+    (GDD.md Section 8.1). Called once, after combat resolves each round.
+    """
+    for p in players:
+        p.analyst_perception_shock = 0.0
 
 
 def pick_target(attacker, beatable, players, rng):
@@ -1259,7 +1414,12 @@ def attempt_takeovers_human(players, rng, current_round, stats, bank):
         true_defense = defense_power_of(target, players)
         stake = attacker.cash * 0.5
         stats["attempts"] += 1
-        if attack_power > true_defense:
+        if attack_power > true_defense and try_guardian_block(target, stats):
+            penalize_failed_attacker(
+                attacker, target, bank, stats, stake * ATTACK_FAIL_LOSS_PCT
+            )
+            stats["ambushes"] += 1
+        elif attack_power > true_defense:
             captured = capture_from_target(target, TAKEOVER_CAPTURE_PCT)
             mark_hit(target, attacker, current_round)
             apply_golden_parachute(target, captured, players, stats)
@@ -1340,7 +1500,17 @@ def attempt_counter_attacks_human(
         # needing several separate rounds to grind them down
         true_defense = defense_power_of(leader, players)
         stats["counter_attempts"] += 1
-        if attack_power > true_defense:
+        if attack_power > true_defense and try_guardian_block(leader, stats):
+            penalize_failed_attacker(
+                challenger,
+                leader,
+                bank,
+                stats,
+                mobilized * ATTACK_FAIL_LOSS_PCT * 0.3,
+                fallback_attr="company",
+            )
+            stats["counter_ambushes"] += 1
+        elif attack_power > true_defense:
             # a coordinated pile-on hits harder than a lone opportunist's
             # raid, not the same amount: Finding 5's original fix capped
             # the runaway snowball but left the corrective mechanic barely
@@ -1413,20 +1583,25 @@ def raider_succeeded(raider, players):
     return target.total_power() < avg_power * 0.5
 
 
-EXTENDED_ARCHETYPES = ARCHETYPES + [
-    "Speculator",
-    "Prepper",
-]  # the 6 originals plus two built for 8+ player pods
+EXTENDED_ARCHETYPES = (
+    ARCHETYPES
+    + [
+        "Speculator",
+        "Prepper",
+        "Operator",
+        "Momentum",
+    ]
+)  # the 6 originals plus four built for 8-10 player pods (BALANCE_TESTING.md Parts 17, 22)
 
 
 def roster_for(n, rng):
     """Builds an archetype roster for n players. Up to 6, the original
     pod. At 7, Casual fills the extra seat, matching every player-count
-    sweep this file has run historically. Above 7, Speculator and Prepper
-    (a dedicated Market bettor and a dedicated hoarder, see their
-    allocation functions above) fill seats 8 and 9 before falling back to
-    repeated Casuals, so a larger table isn't just padded with duplicate
-    first-timers, it has two more genuinely distinct identities first.
+    sweep this file has run historically. Above 7, four more genuinely
+    distinct identities (Speculator, Prepper, Operator, Momentum, see
+    their allocation functions above) fill seats 8 through 10, so a
+    larger table isn't just padded with duplicate first-timers: 9 and 10
+    players no longer need a single repeated Casual at all.
     """
     base = list(ARCHETYPES)
     if n <= len(base):
@@ -1863,13 +2038,36 @@ def liquidate_real_estate(p, cash_needed):
     return raised
 
 
+GOLD_LIQUIDATION_HAIRCUT = (
+    0.95  # Gold is deliberately the *liquid* hedge (GDD.md Section 5), forced
+)
+# liquidation costs far less friction than Real Estate's 15%, the illiquid asset by design
+
+
+def liquidate_gold(p, cash_needed):
+    """Sells off Gold to raise cash, a much smaller haircut than Real
+    Estate's: Gold's entire identity is being the flight-to-safety asset
+    that's easy to convert back to cash in a crunch, a real distress sale
+    of illiquid property is not the same transaction as selling bullion.
+    Returns how much cash was actually raised.
+    """
+    if p.gold <= 0 or cash_needed <= 0:
+        return 0.0
+    gold_to_sell = min(p.gold, cash_needed / GOLD_LIQUIDATION_HAIRCUT)
+    p.gold -= gold_to_sell
+    raised = gold_to_sell * GOLD_LIQUIDATION_HAIRCUT
+    p.cash += raised
+    return raised
+
+
 def collect_payment(p, amount_needed):
-    """Raises `amount_needed` in actual cash from a player, cash first, then
-    Company, then Real Estate at the standard liquidation haircut if still
-    short. Shared by both new mechanics below: a takeover capturing a share
-    of total wealth (not just liquid holdings), and a failed attacker
-    paying a penalty they can't necessarily cover from cash alone. Returns
-    how much was actually collected, capped by what the player has.
+    """Raises `amount_needed` in actual cash from a player: cash first, then
+    Company, then Real Estate, then Gold, each at its own liquidation
+    haircut if still short. Shared by every mechanic that forces a payment:
+    a takeover capturing a share of total wealth (not just liquid
+    holdings), a failed attacker's penalty, an Audit's lying penalty, and
+    the Defense Pact breakup penalty. Returns how much was actually
+    collected, capped by what the player has.
     """
     paid = min(p.cash, amount_needed)
     p.cash -= paid
@@ -1881,6 +2079,12 @@ def collect_payment(p, amount_needed):
         remaining -= from_company
     if remaining > 0 and p.real_estate > 0:
         raised = liquidate_real_estate(p, remaining)  # adds `raised` to p.cash
+        take = min(raised, p.cash)
+        p.cash -= take
+        paid += take
+        remaining -= take
+    if remaining > 0 and p.gold > 0:
+        raised = liquidate_gold(p, remaining)  # adds `raised` to p.cash
         take = min(raised, p.cash)
         p.cash -= take
         paid += take
@@ -2245,6 +2449,7 @@ def new_stats():
         "power_card_failed_audits": 0,
         "power_card_lies_caught": 0,
         "power_card_lie_penalties_paid": 0.0,
+        "power_card_guardian_blocks": 0,
     }
 
 
@@ -2299,7 +2504,7 @@ def simulate_game(n_players, rng, total_rounds=TOTAL_ROUNDS, building_rounds=Non
         settle_peer_defaults(players, stats)
         for p in players:
             debt_before = p.debt
-            allocate_human(p, players, rng, rnd)
+            allocate_human(p, players, rng, rnd, scenario_deltas)
             if p.archetype == "Leverager":
                 enforce_bank_capacity(p, debt_before, bank, stats)
         for p in players:
@@ -2319,6 +2524,7 @@ def simulate_game(n_players, rng, total_rounds=TOTAL_ROUNDS, building_rounds=Non
             attempt_counter_attacks_human(
                 players, rng, rnd, already_joined_this_round, stats, bank
             )
+        clear_analyst_shocks(players)
 
         revalue_stock_positions(
             players

@@ -2,14 +2,13 @@
 
 ## 1. Pitch
 A web-based financial strategy game for a small group of friends (**3 to
-8**, simulation-tested: an earlier pass found 3-4 players broke down
+10**, simulation-tested: an earlier pass found 3-4 players broke down
 because of a biased test roster, not the player count itself, once that
-bias was fixed, 3-4 read comparably to every other supported count, and 8
-was validated once two new archetypes existed so a larger table wasn't
-just padded with duplicate first-timers; see BALANCE_TESTING.md Part 17.
-9-10 aren't supported yet, the same roster problem reappears there without
-a genuine 9th archetype) playing together in one sitting - start to
-finish in under an hour, like a
+bias was fixed, 3-4 read comparably to every other supported count. Four
+new archetypes (Speculator, Prepper, Operator, Momentum) let 8, 9, and 10
+players test clean too, so a larger table isn't just padded with
+duplicate first-timers; see BALANCE_TESTING.md Parts 17, 22) playing
+together in one sitting - start to finish in under an hour, like a
 board game night, not a slow mobile game you check in on for weeks. Everyone
 builds a company and grows their **Power** - a combined score built from
 cash, real estate, stock positions, and captured rivals, not just a single
@@ -218,9 +217,12 @@ part of the game.
    broad optimism (see Section 5A). Not a growth strategy, a defensive one:
    simulated as something only cautious, diversifying players bother with,
    everyone else is chasing bigger returns elsewhere and has no reason to.
-   **Not yet part of the liquidation cascade** (Section 5.4's cash-then-
-   Company-then-Real-Estate order doesn't draw on Gold yet if someone owes
-   more than that covers), a known scope gap, not a design decision.
+   **Part of the liquidation cascade now** (Section 5.4's cash-then-
+   Company-then-Real-Estate order now draws on Gold last if someone still
+   owes more), at a much smaller 5% haircut than Real Estate's 15%: Gold
+   is the deliberately liquid asset here, a forced sale of it isn't the
+   same kind of transaction as a distress sale of illiquid property. See
+   BALANCE_TESTING.md Part 20.
 
 ## 5A. Industries and Market Events
 
@@ -238,7 +240,7 @@ Retail, Agriculture, Manufacturing, Media & Entertainment, Property.**
 
 ("Property," not "Real Estate": that name is already the defensive asset
 class, Section 5.2, using it twice would be genuinely confusing at the
-table.) With 3-8 players and 10 industries, most industries have zero or
+table.) With 3-10 players and 10 industries, most industries have zero or
 one player in them, a few might overlap, that's fine, industries aren't a
 scarce resource players compete over.
 
@@ -396,6 +398,7 @@ ruleset yet, see BALANCE_TESTING.md Parts 6, 9, 12):**
 |---|---|
 | Buying Real Estate | 97 cents on the dollar, a 3% purchase cost |
 | Liquidating Real Estate | 85 cents on the dollar, a 15% haircut for selling in a hurry |
+| Liquidating Gold (forced, to cover a payment) | 95 cents on the dollar, a 5% haircut, much smaller than Real Estate's: Gold is deliberately the liquid asset here |
 | Bankruptcy | Creditors seize 85% of everything (Cash, Company, Real Estate, Gold, Market and JV positions), the remaining 15% and your debt are both discharged |
 
 **Combat percentages** (Section 6):
@@ -734,7 +737,11 @@ The 7 cards:
     calling in a loan against you" idea: peer-loan recall isn't a modeled
     mechanic (Section 5 item 4), so Standstill is scoped to shield against
     exactly the leverage-driven costs the Loans system already charges,
-    not a mechanic that doesn't exist yet.
+    not a mechanic that doesn't exist yet. **Simulated as one mechanical
+    effect** (BALANCE_TESTING.md Part 21): both halves describe the same
+    underlying benefit, cheaper debt, so both waive the leverage premium
+    on the player's next interest accrual rather than needing two separate
+    code paths for a difference that doesn't change the number.
 - **The Insider** (information) — one job, no block
   - *Action, Tip-Off* (any round, named target): privately learn that
     target's true Cash, Company, Real Estate, Gold, and Debt (their full
@@ -750,12 +757,17 @@ The 7 cards:
     the card's single action-use either way): **Expose** forces a named
     target's Market (Industry) positions to be revealed to the whole
     table, publicly. **Report** issues a public "report" that shifts how
-    the target's Company is perceived for one round: their *apparent*
-    Company value, for attack-power and defense calculations only, not
-    their real Power, moves +/-15% (the Analyst's choice of direction), the
-    same figure the JV reputation penalty and the Audit lying penalty
-    already use, a real, one-round perception shock, not their actual
-    wealth.
+    the target is perceived as an attack target for one round: their
+    *visible* defense number moves +/-15% (the Analyst's choice of
+    direction), the same figure the JV reputation penalty and the Audit
+    lying penalty already use, a real, one-round perception shock, not
+    their actual wealth. **Reinterpreted during simulation**
+    (BALANCE_TESTING.md Part 21): the original "apparent Company value"
+    framing didn't attach to anything, this game's combat math never reads
+    Company value at all, defense is Real Estate and cash only (Section
+    6). Shifting the visible defense number directly is the same intent
+    (how a target is perceived by potential attackers) attached to a
+    number the math actually uses.
   - *Block, Countermeasure* (any round): fully negate an Expose or Report
     aimed at you.
 
@@ -980,19 +992,29 @@ for a group of friends playing together.
   Declare/Audit costs and this game's existing percentage vocabulary rather
   than inventing new numbers.
 
-  **First simulation pass, done** (BALANCE_TESTING.md Part 18): the full
-  Declare/Audit claim/bluff/audit economy is modeled for all 7 cards, with
-  a real simulated mechanical payoff for the three cards whose action is a
-  clean, unconditional number (Financier, Marauder, Broker). Result:
-  Socialite's win share drops at 6 and 8 players with Power Cards active,
-  and the share goes to Diversifier and Turtle, not to Aggressor, whose
-  share barely moves, the healthy direction, adding real variance without
-  feeding the one archetype every other finding in this file has had to
-  watch. **Still open**: the other four cards' actual payoffs (Guardian's
-  block, Banker's terms, Insider's and Analyst's information) aren't
-  simulated yet, and this pass uses flat claim/bluff/audit probabilities,
-  not real strategic bluffing, a sharper version of the "bots aren't
-  adaptive humans" caveat every trait-based mechanic in this file carries.
+  **Simulated, five of seven cards now with a real mechanical payoff**
+  (BALANCE_TESTING.md Parts 18, 21): the full Declare/Audit claim/bluff/audit
+  economy is modeled for all 7 cards. Financier, Marauder, and Broker have
+  clean, unconditional numbers; Banker's two halves collapse to one
+  mechanical effect (both waive the leverage risk premium on the next
+  interest accrual); Guardian's block is modeled reactively, at the exact
+  moment an attack would land, not through the claim pipeline, since
+  Section 6 already establishes attacks can't be seen coming the same
+  round; Analyst's Report shifts the target's visible defense number
+  directly, a reinterpretation caught while implementing (the original
+  "apparent Company value" framing didn't attach to anything, combat math
+  never reads Company value). Claim, bluff, and audit chances now vary
+  per player off existing traits (`declare_bias`, `grudge_bias`) instead
+  of one flat rate for everyone. Result: Socialite's win share drops at 6
+  and 8 players with Power Cards active, and the share goes to Diversifier
+  and Turtle, not to Aggressor, whose share barely moves, the healthy
+  direction, adding real variance without feeding the one archetype every
+  other finding in this file has had to watch. **Still open**: Insider's
+  and Analyst's Expose have no simulated payoff (genuinely unmodelable,
+  information a bot can't act on), Guardian's block isn't bluffable yet,
+  and per-player trait variation is real progress toward real strategic
+  bluffing, not the same thing, that remains a separate, larger piece of
+  work.
 - ~~Raider/Builder ratio and reveal timing~~ **ratio simulated**: roughly 1
   Raider per 5-6 players, 14.9% Raider success rate, no measurable effect
   on Builder balance (see Section 8.2). **Reveal timing is still open.**
@@ -1008,50 +1030,28 @@ for a group of friends playing together.
   lands.
 - ~~Round count doesn't scale with player count, and the anti-snowball
   margin has only ever been validated against the six-player pod~~
-  **partially resolved**: every mechanic added since Part 7's margin fix
-  (Industries, Gold, Bank deposits, Co-Founder, the JV rebuild, the Defense
-  Pact breakup mechanic) had only ever been tested at n=6. Run together,
-  for the first time, across the full 5-7 range: all three player counts
-  now hold up (healthy archetype variety, Socialite dominant but never
-  runaway, near-zero dead rounds), confirming the officially supported
-  range on its own terms, not just extrapolated from the six-player result.
-  See BALANCE_TESTING.md Part 16.
-
-  **Superseded by Part 17** (see below and Section 1): the "different,
-  not-yet-clean problem" this paragraph originally described (Socialite
-  crossing 50% at 4 players, Aggressor winning outright at 3) turned out to
-  be a roster-sampling bug, not a property of small player counts. Fixed,
-  and the range is now **3 to 8**, not 5 to 7.
-
-  **Traced and mostly resolved** (BALANCE_TESTING.md Part 17): that
-  dominance problem turned out to be a roster-composition bug, not a real
-  property of small player counts. `roster_for` had been handing every
-  3-player game the *identical* `[Diversifier, Turtle, Aggressor]` roster
-  and every 4-player game the identical four, Socialite never appeared at
-  all in a 3-player game, SoloGrinder and Leverager never appeared at 3 or
-  4, in this file's entire testing history. Fixed to a genuine random
-  sample of the 6 archetypes. With that fixed: no archetype crosses 50% at
-  either 3 or 4 players, Socialite leads at both (consistent with every
-  other player count), and winner variety improves. (Building Phase
-  *length* is hidden and randomized per game, see above, a related but
-  separate fix for a different problem, "the Building Phase is a solved
-  formula," not this one.)
-
-  **What's still a real, open product decision, not a numbers question
-  anymore**: whether to actually lower the officially supported minimum
-  below 5. The evidence that excluded 3-4 players in the first place was
-  measuring a biased roster as much as the player count itself, and with
-  that bias fixed, 3-4 now look comparable to 5-7 on every metric this file
-  tracks (lock round, win-rate variety, no single-archetype dominance).
-  That's real, positive evidence, not proof a human table of 3-4 has a
-  good time, the same bots-aren't-playtesting caveat every finding in this
-  file carries. Two new archetypes (**The Speculator**, a concentrated
-  Market bettor, and **The Prepper**, a Gold/Bank-deposit hoarder, both
-  reusing existing mechanics rather than new plumbing) were also built and
-  tested for the *maximum* end: **8 players reads clean**, directly
-  comparable to 7 on every metric; 9-10 are not yet clean, both still lean
-  on duplicate Casual bots to fill the table rather than genuinely distinct
-  archetypes.
+  **resolved**: every mechanic added since Part 7's margin fix (Industries,
+  Gold, Bank deposits, Co-Founder, the JV rebuild, the Defense Pact
+  breakup mechanic, Power Cards) had only ever been tested at n=6. Run
+  together across the full range for the first time (BALANCE_TESTING.md
+  Parts 16, 17, 22), a real bug surfaced along the way: `roster_for` had
+  been handing every 3-player game in this file's entire testing history
+  the *identical* `[Diversifier, Turtle, Aggressor]` roster, and every
+  4-player game the identical four, Socialite never appeared at all in a
+  3-player trial, ever, until it was fixed to a genuine random sample.
+  That single bug, not the player count, was behind the original
+  3-4-player exclusion. Four new archetypes (Speculator, Prepper,
+  Operator, Momentum, each filling a real behavioral gap rather than
+  padding the roster) let 8, 9, and 10 read clean too, without leaning on
+  duplicate Casual bots. **The officially supported range is now 3 to 10**,
+  not 5 to 7, validated on every metric this file tracks (lock round,
+  win-rate variety, no single-archetype dominance) at every count.
+  (Building Phase *length* is hidden and randomized per game, see above, a
+  related but separate fix for a different problem, "the Building Phase is
+  a solved formula," not this one.) The bots-aren't-playtesting caveat
+  every finding in this file carries applies at full force here too: this
+  is real, positive evidence, not proof a human table of any size has a
+  good time.
 - ~~Ordinary human inconsistency weakens the anti-snowball fix more than
   expected~~ **resolved**: Finding 5's fix only ever won by a 1.1% margin
   (405.9 vs 401.3 Power), a coin flip dressed up as a validated result,
@@ -1126,11 +1126,11 @@ for a group of friends playing together.
 ## 10. MVP Scope (Live Mode)
 
 ### In scope (v1)
-- 3 to 8 players, one sitting, ~45-60 minutes, with room lengths scaling
-  loosely at the extremes (a 3-player game locks in a leader earlier, an
-  8-player game runs a bit longer). 9-10 aren't in scope yet: both still
-  rely on duplicate Casual bots in testing rather than genuinely distinct
-  archetypes (Section 1, BALANCE_TESTING.md Part 17).
+- 3 to 10 players, one sitting, ~45-60 minutes, with room lengths scaling
+  loosely at the extremes (a 3-player game locks in a leader earlier, a
+  10-player game runs a bit longer). All ten counts validated clean
+  against the full current mechanic set (Section 1, BALANCE_TESTING.md
+  Parts 16, 17, 22).
 - Building Phase + Conflict Phase structure.
 - All six money mechanics (Company, Real Estate, Market, Loans, Joint
   Ventures, Takeovers) - simulation-tested numbers from Section 5/6.

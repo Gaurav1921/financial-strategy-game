@@ -2031,3 +2031,217 @@ roughly 2.9 times per 6-player game.
   times, not necessarily the only one.
 - Retesting at player counts other than 6 and 8, or against Parts 1-15's
   individual findings in isolation.
+
+---
+
+# Part 20 - Gold finally joins the liquidation cascade
+
+## Why this exists
+Named as a known scope gap since Part 12 and repeated unchanged in every
+review of this file since: a player who owed more than cash, Company, and
+Real Estate covered couldn't be forced to sell Gold to pay it, `Gold`
+sat partly outside the game's own enforcement rules. Small, but real, and
+the only item in this file that had gone three drafts with nothing done
+to it at all.
+
+## The fix
+`liquidate_gold`, a fourth tier on `collect_payment`'s cascade (cash, then
+Company, then Real Estate, then Gold). Gold's haircut is deliberately much
+smaller than Real Estate's (`GOLD_LIQUIDATION_HAIRCUT`, 5% vs. Real
+Estate's 15%): Gold's entire identity in this design is the liquid,
+flight-to-safety asset (Section 5A), a forced sale of bullion isn't the
+same kind of transaction as a distress sale of illiquid property, so it
+shouldn't carry the same friction.
+
+## Result
+Verified directly with an isolated player holding only Gold: `collect_payment`
+correctly draws from it once cash, Company, and Real Estate are exhausted.
+Full current configuration, 1500 trials at n=6 and n=8: no measurable
+shift from the pre-fix baseline (Socialite 71-74% / 54-58% respectively,
+matching every other reading of this same configuration in Parts 16-19),
+expected, since Gold only ever mattered here for the rare case of a player
+who's exhausted three other asset classes and still owes more.
+
+## What Part 20 doesn't cover
+- `GOLD_LIQUIDATION_HAIRCUT` (5%) was set directly, not swept.
+- How often this tier actually fires in practice, not separately
+  instrumented; the rarity of "owes more than cash+Company+Real Estate
+  cover" makes this a low-frequency path by construction, the same honest
+  limitation Gold's income effect already carries (Part 12).
+
+---
+
+# Part 21 - Power Cards: four more mechanical payoffs, and real per-player variation
+
+## Why this exists
+Part 18's first Power Cards pass deliberately modeled only three cards
+(Financier, Marauder, Broker) and used one flat, identical claim/bluff/audit
+probability for every player. Both were named as real, bounded scope cuts
+at the time, not the end state. This closes both: four more cards get a
+real mechanical effect, and claim/bluff/audit chances now vary per player
+off traits this file already validated elsewhere.
+
+## Guardian's block, made reactive
+Guardian's whole card is a block, and GDD.md Section 6 already establishes
+that attacks can't be seen coming the same round they land, moves lock in
+secretly. That means Guardian can't resolve through the same proactive
+claim pipeline as the other six cards, it has to fire at the exact moment
+an attack would otherwise succeed. `try_guardian_block` is checked inside
+`attempt_takeovers_human`, `attempt_counter_attacks_human`, and Marauder's
+own Power Card action, right where each currently decides a hit landed:
+if the target genuinely holds Guardian and hasn't used their block yet,
+the attack fails instead, the attacker pays the normal failed-attack
+penalty. **Not bluffable in this pass**: only a genuine cardholder can use
+it, a real, named scope cut, not an oversight, modeling a bluffed block
+(claiming Guardian to save yourself, risking an audit mid-attack) is its
+own real piece of work.
+
+## Banker's two halves collapse to one mechanical effect
+Easy Terms and Standstill were designed as two different framings
+(better terms on a new loan; a shield on existing debt), but both actually
+describe the same underlying benefit, cheaper debt. Rather than build two
+separate code paths for a difference that doesn't change the number, both
+now set `banker_waiver_pending`, which waives the leverage risk premium on
+the player's *next* interest accrual (income resolves before a round's
+Power Card claims do, so "next" is the honest timing, not "this round").
+Since only Leverager ever carries debt in this bot pod, this card's
+practical impact stays narrow by construction, an honest, named limitation
+rather than a hidden one.
+
+## Analyst's Report, reinterpreted to actually attach to something
+The original design text described Report as shifting a target's
+*apparent Company value* for defense and attack-power calculations. Real
+gap found while implementing: this game's actual combat math never reads
+Company value at all, `defense_power_visible` is Real Estate and cash
+only. Rather than force a number into a formula that doesn't use it,
+Report now shifts the target's **visible defense number itself**
+(`analyst_perception_shock`, +/-15%, the same figure the JV reputation
+penalty and Audit lying penalty already use) for the rest of that round,
+cleared after combat resolves (`clear_analyst_shocks`). Closer to the
+actual intent, "how a target is perceived by potential attackers," than
+the original wording, attached to a number this game's math genuinely
+uses. Expose (revealing Market positions) stays unmodeled, same as
+Insider's Tip-Off, both a pure information payoff a fixed-behavior bot has
+no way to act on.
+
+## Claim, bluff, and audit chances now vary per player
+Part 18 used one flat rate for every player. `_power_card_claim_chance`
+scales the base rate by `declare_bias` (0.2-0.8, already governs Defense
+Pact posture, Section 7), a player already modeled as bolder about public
+claims is bolder about Power Card claims too. `_power_card_audit_chance`
+boosts a specific auditor's chance against a claimant who's hit them
+before (`grudge_bias`, already used for attack targeting, `pick_target`),
+a real "I don't trust *them* specifically" signal instead of identical
+suspicion for every claim. Real per-player variation, reusing traits this
+file already validated, still not real strategic bluffing (no timing off
+pot size, no reading who's suspicious of them right now), that remains a
+separate, larger piece of work.
+
+## Result
+Full current configuration, 1500 trials at n=6 and n=8:
+
+| Players | Winner breakdown | Claims/game | Effects resolved/game | Guardian blocks/game |
+|---|---|---|---|---|
+| 6 | Socialite 72.6%, Diversifier 12.6%, Turtle 9.7%, Aggressor 5.1%, SoloGrinder 0.1% | 7.26 | 4.04 | 0.439 |
+| 8 | Socialite 55.4%, Prepper 17.5%, Diversifier 12.5%, Turtle 11.6%, Aggressor 2.1%, SoloGrinder 0.5%, Speculator 0.3% | 9.77 | 5.40 | 0.445 |
+
+Consistent with Part 18's baseline (Socialite 71-74% / 54-58% at these
+same two counts across every reading since), Aggressor's share stays low
+at both, no archetype spike from the deeper implementation. Effects
+resolved per game roughly doubled from Part 18 (2.05 -> 4.04 at n=6, 2.75
+-> 5.40 at n=8), expected: five cards carry a real payoff now instead of
+three. Guardian blocks fire close to once every two games, a real, active
+mechanic, not a rare corner case.
+
+## What Part 21 doesn't cover
+- Bluffed Guardian blocks (claiming the card to save yourself when you
+  don't hold it), a real, separate follow-up.
+- Insider's and Analyst's Expose still have no simulated payoff, genuinely
+  unmodelable by a bot with no belief-updating layer, not a scope cut
+  expected to close in a future pass the way the other four were.
+- Real strategic bluffing (adaptive, table-reading behavior), still a
+  separate, larger piece of work, per-player trait variation is real
+  progress toward it, not the same thing.
+- Whether `ANALYST_PERCEPTION_SHOCK_PCT` (15%) is the right size for a
+  mechanic that only ever shifts perceived, not real, defense, chosen to
+  match the file's existing percentage vocabulary, not swept.
+
+---
+
+# Part 22 - Two more archetypes close out 9 and 10 players
+
+## Why this exists
+Part 17 named the exact gap: 9-10 players tested "not clean" because both
+still leaned on duplicate Casual bots rather than genuinely distinct
+archetypes, one real seat (Speculator or Prepper) plus one or two
+identical copies of the same first-timer stand-in. Closing that needed
+actual new archetypes, not a re-test of the same roster.
+
+## Two more archetypes, each filling a real behavioral gap
+- **The Operator**: leans hard into Power Cards (Section 8.1) rather than
+  a concentrated financial position. Plays a balanced, Diversifier-like
+  split (30% Company, 25% Real Estate, 20% Market, 25% cash reserve, kept
+  larger than most archetypes since both claiming and Auditing cost real
+  cash), but is dealt a naturally higher `declare_bias` (0.6-0.95 instead
+  of the usual 0.2-0.8), so claim and Audit chances
+  (`_power_card_claim_chance`, `_power_card_audit_chance`, Part 21) run
+  well above the table average without a second, special-cased
+  probability system, tests the Power Cards system with a dedicated
+  practitioner the same way Speculator tests the Market (Part 17).
+- **The Momentum**: chases whichever asset class read stronger this round,
+  a real, distinct "hot hand" behavioral bias, reacting to what just
+  happened rather than playing a fixed split regardless of the scenario.
+  Falls back to a default split without Industries active, there's no
+  signal to chase without a scenario delta to compare.
+
+`EXTENDED_ARCHETYPES` now fills seats 8 through 10 with four genuinely
+distinct identities (Speculator, Prepper, Operator, Momentum) before any
+Casual padding, so 9 and 10 players no longer need a single repeated
+Casual at all.
+
+## Result
+Full current configuration, 1500 trials each:
+
+| Players | AvgLockRound | Gap% | Dead/Broke | Variety | Breakdown |
+|---|---|---|---|---|---|
+| 8 | 9.6 | 9.1% | 0.009 / 0.689 | 7 | Socialite 55.9%, Prepper 16.3%, Diversifier 12.5%, Turtle 11.5%, Aggressor 2.4%, SoloGrinder 1.1%, Speculator 0.3% |
+| 9 | 9.6 | 8.5% | 0.008 / 0.618 | 8 | Socialite 52.5%, Prepper 18.1%, Diversifier 10.9%, Turtle 9.7%, **Operator 5.5%**, Aggressor 2.5%, SoloGrinder 0.6%, Speculator 0.3% |
+| 10 | 10.0 | 8.0% | 0.006 / 0.550 | 9 | Socialite 47.8%, **Momentum 19.1%**, Prepper 11.7%, Diversifier 7.9%, Turtle 6.7%, Operator 3.1%, Aggressor 2.4%, SoloGrinder 1.1%, Speculator 0.1% |
+
+Clean at all three counts, and cleaner than the pre-fix Part 17 reading at
+the same counts (n=9 was Socialite 57.9%/Casual 17.5%, n=10 was Socialite
+49.5%/Casual 30.0%, both driven by duplicate-bot inflation, not a real
+signal). With genuine archetypes instead: both new archetypes pull real,
+meaningful weight rather than sitting dead (Operator 5.5% at n=9, Momentum
+a strong 19.1% at n=10, the largest non-Socialite share recorded at any
+player count in this file's history), and Socialite drops *under* 50% at
+n=10 for the first time, cleaner than several already-accepted counts
+(n=6 runs 71-74% in this same configuration). Winner variety climbs to 9
+of the 10 possible archetypes at n=10, essentially the full roster
+represented.
+
+## Recommendation
+9 and 10 players are now clean by the same bar 8 was validated against.
+The officially supported range moves to **3 to 10**, not 3 to 8 (GDD.md
+Sections 1, 10).
+
+## A real bug caught while extending to 9-10: `assign_power_cards` left two seats without a card
+`assign_power_cards` (Part 18) only ever added one extra duplicate card
+past the base 7, correct for the 8-player case it was built for, silently
+wrong at 9 or 10: `dealt[:n]` on an 8-item list at n=9 or 10 just returns
+the 8 it has, leaving the 9th and 10th players' `power_card` as `None`,
+able to bluff (any type is a valid lie for a player holding nothing) but
+never make a genuine claim. Fixed to add one repeated type per seat past
+7, so every player in a 9- or 10-player game gets a real card. Confirmed
+directly: `[p.power_card for p in players]` at n=10 now contains no
+`None` entries.
+
+## What Part 22 doesn't cover
+- Operator's and Momentum's specific split percentages were set directly,
+  not swept.
+- Whether Momentum's strong 19.1% share at n=10 holds up once retested
+  against Parts 1-15's individual findings in isolation, only the full
+  combined configuration was tested here.
+- Player counts above 10, not attempted, the 7-card Power Cards deal
+  already needs more than one duplicate at 9+ (see above), an 11th seat
+  would need its own archetype and a decision about the Power Cards deck too.
