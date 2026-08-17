@@ -79,6 +79,26 @@ see an attack coming in the same round it happens.
 Plan defensively based on what you can already see (Section 6 covers
 exactly what that is), not on what happens this round.
 
+### Round timer and disconnection
+Every round runs against a real clock: **3 minutes**, though a round
+ends the moment every active player signals ready, so 3 minutes is a
+ceiling most rounds won't actually hit, not the expected pace.
+
+**If your timer runs out before you act**, your round defaults to a
+hold: your new income splits exactly the way last round's did. No new
+Joint Venture forms, no Power Card claim goes out, no Audit gets called
+on your behalf, a true hold, not someone else deciding for you.
+
+**If you miss a round entirely and look genuinely gone**, any other
+active player can call a vote to remove you, once you've missed at
+least one round via timeout. A strict majority of the table's other
+still-active players passes it. A passed vote routes you through the
+same Board Observer path as going bankrupt or being fully taken over
+(Section 7): your company stops changing, but whatever you had at that
+moment stays completely real and fully attackable, arguably a bigger
+target than before, since it can't grow but also can't defend itself.
+**If you reconnect, you simply resume playing from the current round.**
+
 ## 3. Industries and the Market
 
 The Market isn't a bet against a specific rival. Every player's company
@@ -258,8 +278,11 @@ genuinely unknown unless someone chooses to reveal them.
   position (you can't declare things about someone else) to deter or
   bluff.
 - **Any player can Audit any Declaration**, not just whoever it directly
-  threatens, at a resource cost, revealing the truth. Being caught lying
-  is penalized harder than a failed Audit.
+  threatens, for a flat **5 cash**, revealing the truth. If the claim
+  turns out true, that 5 cash goes straight to the player you audited, a
+  real reward for having told the truth. If you catch a lie, the liar
+  pays for it directly: a real, visible **~15%** hit to their current
+  total Power, with your 5 cash refunded out of that penalty first.
 - **Declared Defense Pacts** are the one exception that's automatically
   public, since the deterrent only works if it's visible. Covert ones
   stay hidden until a fight actually happens.
@@ -271,9 +294,9 @@ to answer, not a leaderboard lookup.
 backing you. Company, Real Estate, and Market positions grow your Power
 but don't arm you; only liquid cash does.
 
-**Defense is Real Estate (heavily weighted) plus a portion of your cash**,
-plus any allies defending you. Company and Market positions don't count
-toward defense either.
+**Defense is Real Estate (heavily weighted), Gold (moderately), and a
+portion of your cash**, plus any allies defending you. Company and
+Market positions don't count toward defense either.
 
 - **When can you attack?** Once the Conflict Phase opens, any time your
   attack power exceeds a target's defense, both the derived values
@@ -292,11 +315,12 @@ toward defense either.
 
 **On a successful hostile bid**, the attacker captures 25% of the target's
 **total wealth**, not just liquid cash. The target pays cash first, then
-Company, then Real Estate (at the standard 15% liquidation haircut) if
-the rest isn't enough to cover it. Real Estate is still your best
-defense, it still counts far more than cash toward whether an attack
-succeeds in the first place, but it's no longer fully immune to what
-happens *after* an attack lands.
+Company, then Real Estate (at the standard 15% liquidation haircut),
+then Gold (a smaller 5% haircut, it's the deliberately liquid asset
+here) if the rest isn't enough to cover it. Real Estate is still your
+best defense, it still counts far more than cash toward whether an
+attack succeeds in the first place, but it's no longer fully immune to
+what happens *after* an attack lands.
 
 **On a failed attack**, the attacker still loses 50% of what they
 committed. That loss doesn't just vanish: half goes to the defender who
