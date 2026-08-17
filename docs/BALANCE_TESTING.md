@@ -2432,3 +2432,48 @@ the same healthy direction every clean addition in this file has produced).
 - Retesting Parts 1-15's individual findings against the now-24-scenario
   table in isolation, only the full combined configuration was retested
   here.
+
+---
+
+# Part 25 - "Takeover" renamed to "Hostile Bid"
+
+## Why this exists
+Named as a real problem in the review series and never acted on: the
+mechanic only captures 25% of a target's total wealth, the target keeps
+their company, comes back behind a Post-Attack Shield, and can be
+immediately recruited as a Co-Founder. "Takeover" promises something
+total and permanent that the mechanic never actually does.
+
+## The fix
+Renamed to **Hostile Bid**, real M&A terminology (a bid the target's
+board rejects, not necessarily a complete or successful acquisition),
+chosen over other authentic candidates considered (Tender Offer, read as
+too soft/bureaucratic for the table's most feared move; Squeeze Out, real
+but risked blending with Broker's existing Skim Power Card, a similar
+partial-extraction flavor). Also echoes the game's own title, "Hostile
+Ledger." Two descriptions that themselves oversold the mechanic ("go
+after a rival's whole company," "attempt to take a rival's whole
+company," in GDD.md and GAMEPLAY.md respectively) were corrected at the
+same time to describe what actually happens: a real share of a rival's
+wealth, not the whole company.
+
+**A display-name change only, not a mechanic change**: no numbers, no
+code identifiers, and no simulation behavior moved. `sim/human_sim.py`'s
+internal function and constant names (`attempt_takeovers_human`,
+`TAKEOVER_CAPTURE_PCT`) are unchanged, they're implementation details
+never shown to a player or compared by string value against game state,
+unlike the Power Card rename ("The Raider" to "The Marauder", Section
+8.1), which needed real code changes because card identity is checked by
+string literal (`if claimed_card == "Marauder"`). Nothing to test or
+validate here, the underlying combat resolution is byte-for-byte
+identical.
+
+## A note on this file's own history
+Parts 1-24 above still say "takeover" throughout, hundreds of mentions
+across this file's history, and they're left exactly as written. Each
+part is an accurate record of what was tested and decided at the time,
+under the name that was current then, the same principle that already
+applied to "The Raider" card (renamed before its own first appearance in
+this file, so no retroactive cleanup was ever needed there either).
+Wherever "takeover" appears above Part 25, read it as "Hostile Bid," the
+mechanic itself never changed.

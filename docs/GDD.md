@@ -32,12 +32,12 @@ something to build now.
 *The Traitors* mobile app in 2026 (hidden traitors, roundtable banishment,
 TV IP). A pure "hidden traitor + vote people off" game competes directly
 with that. Our differentiation is the financial-strategy layer underneath -
-Power, multiple asset classes, real takeovers - which a narrative party
+Power, multiple asset classes, real hostile bids - which a narrative party
 game won't have.
 
 ## 3. The core resource: Power
 Not just net worth. **Power = Cash + Real Estate value + Stock holdings +
-Captured value (from successful takeovers) − Debt (from loans) + a small
+Captured value (from successful hostile bids) − Debt (from loans) + a small
 bonus per active alliance.** Two players with the same raw dollar total can
 have very different Power depending on how diversified and allied they are
 - this is deliberate: it's what makes "am I actually strong enough to
@@ -68,7 +68,7 @@ chance to build up.
   actually stops a human from finding a dominant pattern after repeat
   plays can't be tested by bots at all, that's a human-playtesting
   question like everything else still open in Section 9.
-- **Conflict Phase** (rest of the game): takeovers unlock. By now the game
+- **Conflict Phase** (rest of the game): hostile bids unlock. By now the game
   is about who built the strongest position, not who allied first.
 - **Final Round**: deliberately different (see Section 8.5) - the
   guaranteed climax where season-long trust either pays off or gets cashed
@@ -96,10 +96,10 @@ runs the same eight steps, whether it's Building or Conflict:
    resolve (hold or drain).
 4. **Loans** - borrow if you want to, Bank capacity permitting; any peer
    loans between allies settle.
-5. **Combat** (Conflict Phase only) - takeovers and "gang up on the
+5. **Combat** (Conflict Phase only) - hostile bids and "gang up on the
    leader" counter-attacks resolve.
 6. **The Market re-prices** - stock positions revalue against what just
-   happened to the companies they're tied to, including a takeover that
+   happened to the companies they're tied to, including a hostile bid that
    just landed.
 7. **Taxes and upkeep** - income tax on everything earned this round
    combined, Real Estate liquidation if anyone chose it, inflation on idle
@@ -181,7 +181,7 @@ part of the game.
    your defense than cash does (see Section 6), so it's what actually
    stops an attack from succeeding in the first place. It's no longer
    automatically untouched *if* an attack does succeed (Section 6's
-   "what happens if a takeover succeeds" now draws from total wealth,
+   "what happens if a hostile bid succeeds" now draws from total wealth,
    Real Estate included, as a last resort after cash and Company), so
    think of it as "the asset that makes you hard to beat," not "the
    asset nothing can ever touch." The deliberate "safe harbor" choice,
@@ -268,7 +268,8 @@ part of the game.
    seek alliances there at all), so a real table, where every human player
    might want to ally, is likely a bigger risk than this bot test can show.
    2 is the validated, recommended cap. See BALANCE_TESTING.md Part 8.
-6. **Takeovers** - go after a rival's whole company (see Section 6).
+6. **Hostile Bids** - go after a real share of a rival's wealth, not their
+   whole company, they keep it and come back (see Section 6).
 7. **Gold** - a flight-to-safety hedge, not tied to any one Industry. Low
    and flat in ordinary years, a real gain specifically during crisis
    scenarios (war, recession, a financial shock), a mild pullback during
@@ -481,7 +482,7 @@ ruleset yet, see BALANCE_TESTING.md Parts 6, 9, 12):**
 
 | Mechanic | Rate |
 |---|---|
-| Takeover / counter-attack capture | 25% of the target's *total* wealth, cash first, then Company, then Real Estate, then Gold |
+| Hostile Bid / counter-attack capture | 25% of the target's *total* wealth, cash first, then Company, then Real Estate, then Gold |
 | Failed attack penalty | Attacker loses 50% of what they staked, split evenly between the defender and the Bank |
 | JV drain split | 65/35 to the drainer if only one side drains, 40/40 (20% lost to friction) if both drain the same round, 50/50 if neither drains |
 | Second proven JV betrayal | An immediate, visible ~15% hit to the drainer's own total Power, docked the instant a second drain is confirmed (across any of their JVs); a first drain costs nothing beyond the relationship itself |
@@ -564,7 +565,7 @@ the live game will actually have.
   warning signs beforehand (who's rich and undefended, who's been forming
   alliances) and defend proactively.
 - **Post-Attack Shield:** after being successfully taken over, you're
-  immune to further takeovers for 2 rounds. Without this, simulation
+  immune to further hostile bids for 2 rounds. Without this, simulation
   testing showed a single attacker will just repeatedly farm the same
   undefended victim for the rest of the game (see BALANCE_TESTING.md Part
   2, Finding 4) - exactly the "veterans farm new players" complaint our
@@ -575,7 +576,7 @@ the live game will actually have.
   the winning strategy flips to whoever's well-allied, and the top-two gap
   shrinks by 97%. This only works if relative Power is clearly visible to
   everyone at the table - that's a UI requirement, not just a rules one.
-- **What happens if a takeover succeeds:** the attacker captures 25% of the
+- **What happens if a hostile bid succeeds:** the attacker captures 25% of the
   target's **total wealth**, not just liquid cash + company. Changed from
   the original "Real Estate untouched" design, per direct instruction: the
   target pays from cash first, then Company, then Real Estate (at the
@@ -588,7 +589,7 @@ the live game will actually have.
   bigger single hit against a Real-Estate-heavy target also makes whoever
   landed it look like a bigger threat sooner, triggering the "gang up"
   correction faster.
-- **What happens if a takeover fails:** the attacker still loses 50% of
+- **What happens if a hostile bid fails:** the attacker still loses 50% of
   what they committed, same as before, but that loss no longer just
   vanishes. Half goes to the defender who successfully protected
   themselves, a real reward for defending, not just an absence of loss;
@@ -762,7 +763,7 @@ each usable exactly once per game**, independently, most cards get one
 real moment for each. This is a real, one-time swing, not a repeatable
 income stream: 15 rounds is long enough that unlimited-use abilities would
 have to be priced far weaker to stay balanced, and this game already has a
-pattern for rare, high-impact, once-ish events (a takeover, a JV drain, the
+pattern for rare, high-impact, once-ish events (a hostile bid, a JV drain, the
 Defense Pact breakup penalty's second strike) that Power Cards fit into
 more naturally than a repeatable one would. **A claim that repeats a move
 already legitimately used this game is automatically a lie if the claimant
@@ -772,7 +773,7 @@ of the one-per-game rule.
 
 **Phase gating matches Section 4's existing rule exactly**: a Power Card
 move that takes value from another player without their consent is an
-attack, and is Conflict Phase only, same as a takeover. A move that only
+attack, and is Conflict Phase only, same as a hostile bid. A move that only
 touches the user's own position, or only reveals information, is available
 in every round, Building Phase included, the same "only attacks are
 phase-gated" principle Section 4 already states for the rest of the game.
@@ -788,22 +789,22 @@ The 7 cards:
 - **The Marauder** (renamed from "The Raider")
   - *Action, Smash and Grab* (Conflict Phase only, an attack): capture 10%
     of a named target's total wealth straight to your own Cash, the same
-    cash-then-Company-then-Real-Estate cascade a takeover uses (Section 6),
-    deliberately smaller than a takeover's 25% and not a full takeover:
+    cash-then-Company-then-Real-Estate cascade a hostile bid uses (Section 6),
+    deliberately smaller than a hostile bid's 25% and not a full hostile bid:
     it doesn't trigger a Post-Attack Shield and doesn't count as a
     "runaway leader" strike either way. If blocked by a Guardian, it fails
-    exactly like a failed takeover attempt (Section 6): the Marauder loses
+    exactly like a failed hostile bid attempt (Section 6): the Marauder loses
     50% of the intended capture, split between the target and the Bank.
 - **The Guardian** — one job, no action of its own
   - *Block, Bodyguard* (Conflict Phase only): fully negate one attack
-    against your own company, whether it's a takeover, a counter-attack, or
+    against your own company, whether it's a hostile bid, a counter-attack, or
     a Marauder's Smash and Grab. The attacker still pays the normal failed-
     attack penalty. Matches Section 6's "Declarations are always about your
     own position" rule: a Guardian can only protect themselves, not an ally.
 - **The Broker** (cash)
   - *Action, Skim* (Conflict Phase only, an attack): take 8% of a named
-    target's current Cash directly, a pickpocket, not a raid, smaller than
-    the Marauder's already-smaller-than-a-takeover hit.
+    target's current Cash directly, a pickpocket, not a raid, smaller even
+    than the Marauder's hit, which is itself smaller than a full Hostile Bid.
   - *Block, Vault* (any round): fully negate one Skim attempt against you.
     The failed Broker forfeits half the attempted skim to the Bank, the
     same shape as a failed attack at a proportionally smaller scale.
@@ -858,11 +859,11 @@ Regulator** (freeze or partially seize a rival's Real Estate for a round)
 and **The Fixer** (resets `drain_count`, wiping a player's proven-betrayal
 record clean). The Analyst remains the strongest fit: the Market is the
 one core money mechanic none of the other six cards touch at all,
-everything else already clusters around income, takeovers, loans, and
+everything else already clusters around income, hostile bids, loans, and
 information.
 
 **Not yet simulated.** Every number above was chosen to sit inside this
-game's existing vocabulary of percentages (a takeover's 25%, a JV drain's
+game's existing vocabulary of percentages (a hostile bid's 25%, a JV drain's
 65/35, a reputation-style penalty's 15%) rather than invented fresh, and
 every action/block pairing was checked against Section 6 and Section 4's
 existing rules (self-only Declarations, phase-gating) rather than granting
@@ -887,7 +888,7 @@ ally is even capable of staying loyal.
 **First simulation pass, done.** Roughly 1 Raider per 5-6 players (a real
 minority, needs at least 4 players to make sense, which is now moot given
 Section 1's 5-7 player range), each secretly assigned one target. A Raider
-sabotages two ways: takeover/counter-attack targeting prefers their
+sabotages two ways: hostile bid/counter-attack targeting prefers their
 assigned mark over the usual richest-beatable choice, and if allied with
 their target via a Joint Venture, they drain it against them far more
 often (60% vs the ordinary Aggressor-only 30%). Win condition: the target
@@ -930,7 +931,7 @@ given real ones didn't exist anywhere before this pass:**
 - **A failed Audit** (the Declaration was true) costs the auditor their 5
   cash, paid straight to the player they audited, a real reward for having
   told the truth, the same "defending pays" principle a successful defense
-  against a takeover already carries (Section 6).
+  against a hostile bid already carries (Section 6).
 - **A caught lie** costs the liar a real, visible ~15% of their current
   total Power, docked on the spot through the same collection cascade used
   everywhere else in this game (cash, then Company, then Real Estate),
@@ -1215,7 +1216,7 @@ for a group of friends playing together.
   Parts 16, 17, 22).
 - Building Phase + Conflict Phase structure.
 - All six money mechanics (Company, Real Estate, Market, Loans, Joint
-  Ventures, Takeovers) - simulation-tested numbers from Section 5/6.
+  Ventures, Hostile Bids) - simulation-tested numbers from Section 5/6.
 - Defense Pacts, Post-Attack Shield, Ghost/Observer status.
 - Hidden Raider/Builder split (simplest version: fixed ratio).
 - Company naming/customization.
@@ -1241,7 +1242,7 @@ for a group of friends playing together.
   natively), not a scheduled daily job. This is a meaningful shift from the
   original async/Season architecture and should be designed in from the
   start rather than retrofitted.
-- **Round resolution logic** (Power calculation, takeover resolution, JV
+- **Round resolution logic** (Power calculation, hostile bid resolution, JV
   payouts) is the most important code in the game and should be
   unit-testable independent of the API/WebSocket layer - the simulations
   in `sim/` already validate this logic in Python, so the resolution
@@ -1255,7 +1256,7 @@ for a group of friends playing together.
 - Likely "one person unlocks the game, friends join free" (Jackbox-style)
   rather than per-player purchases - fits a friend-group one-sitting game
   much better than trying to monetize each participant individually.
-- No pay-to-win: Takeovers, Joint Ventures, and Power Cards only stay
+- No pay-to-win: Hostile Bids, Joint Ventures, and Power Cards only stay
   meaningful if outcomes can't be bought.
 
 ## 13. Onboarding: what's taught when, not a rules dump

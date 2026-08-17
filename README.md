@@ -21,7 +21,7 @@ See [`docs/GDD.md`](docs/GDD.md) for the full design.
   - [`BALANCE_TESTING.md`](docs/BALANCE_TESTING.md) - results from the
     simulations used to test and tune the game's numbers before building
     anything, including bugs and exploits that were found and fixed along
-    the way (loan interest, takeover math, alliance betrayal payouts).
+    the way (loan interest, Hostile Bid math, alliance betrayal payouts).
   - [`ENVIRONMENT_SETUP.md`](docs/ENVIRONMENT_SETUP.md) - how the Python
     dev environment is created and auto-initialized when opening this
     project in VS Code.

@@ -36,7 +36,7 @@ the same 100 Power; the split only affects what counts as a personal win
 later, not Round 1 resources or options.
 
 The game runs **15 rounds**, split into three parts:
-- **Building Phase**: no takeovers. Every other option is open. **Its
+- **Building Phase**: no hostile bids. Every other option is open. **Its
   length is 4 to 6 rounds and is rolled secretly at the start of the
   game, never announced.** You genuinely don't know, round to round,
   whether attacks are about to unlock. This is deliberate: a fixed,
@@ -44,7 +44,7 @@ The game runs **15 rounds**, split into three parts:
   Company until round N, then pivot to defense"), and a repeat player
   solves that once and never has to think about it again. Hiding the
   length forces you to read the table's actual warning signs instead.
-- **Conflict Phase**: the rest of the game up to round 15. Takeovers
+- **Conflict Phase**: the rest of the game up to round 15. Hostile Bids
   unlock the round after the Building Phase ends.
 - **Round 15, the Final Round**: deliberately different rules. See
   Section 7.
@@ -66,10 +66,10 @@ see an attack coming in the same round it happens.
 4. **Loans** - borrow if you want to, Bank capacity permitting; any
    outstanding peer-to-peer loans between allies settle.
 5. **Combat** (Conflict Phase only, skipped entirely during the Building
-   Phase) - takeovers and "gang up on the leader" counter-attacks
+   Phase) - hostile bids and "gang up on the leader" counter-attacks
    resolve.
 6. **The Market re-prices** - Industry positions revalue against that
-   round's scenario, including the knock-on effect of a takeover that
+   round's scenario, including the knock-on effect of a hostile bid that
    just landed.
 7. **Taxes and upkeep** - if enabled at your table: income tax on
    everything earned this round combined, Real Estate liquidation if
@@ -137,14 +137,16 @@ Buy in at a 3% closing cost. Real Estate pays roughly 5%/round, adjusted
 by half of whatever that round's Property scenario rolled. It's still
 the asset that counts far more toward your **defense** than cash does
 (Section 6), the deliberate safe-harbor choice, **but it is no longer
-100% untouchable** if a takeover actually lands against you (see
+100% untouchable** if a hostile bid actually lands against you (see
 Section 6's capture cascade). Liquidating it back to cash, on your own
 terms, any time, costs a 15% haircut.
 
 ### Gold
-Buy in with spare cash any round. Not weighted into defense or attack
-power the way Real Estate and cash are; it exists purely to smooth out
-your returns across good and bad scenario rounds.
+Buy in with spare cash any round. Counts toward your **defense** too
+(0.6x per unit, between cash's 0.3x and Real Estate's 0.9x), a real, if
+smaller, defensive credit for a safe-haven asset, though not toward
+attack power the way cash is. Also exists to smooth out your returns
+across good and bad scenario rounds.
 
 ### The Market (Industry positions)
 Take a long or short position in any of the ten Industries. Pays out on
@@ -207,14 +209,15 @@ A JV partnership and a Defense Pact (Section 5) currently share the same
 relationship: allying with someone covers both at once, and the two-ally
 cap applies to that combined relationship, not to each separately.
 
-### Takeovers
-Attempt to take a rival's whole company. **Only available once the
-Building Phase ends** (round 5 to 7, depending on that game's hidden
-roll). See Section 6.
+### Hostile Bids
+Attempt to capture a real share of a rival's wealth, not their whole
+company, they keep it and come back behind a shield. **Only available
+once the Building Phase ends** (round 5 to 7, depending on that game's
+hidden roll). See Section 6.
 
 ## 5. Round 1, concretely
 
-Nobody has takeovers available yet (and won't for at least 4 more
+Nobody has hostile bids available yet (and won't for at least 4 more
 rounds, though exactly how many is hidden), so early rounds are purely
 economic. A typical player, starting from 20 cash / 80 company / 100
 Power in their assigned Industry, is choosing among:
@@ -287,7 +290,7 @@ toward defense either.
   of time instead: who's rich and undefended, who's been forming
   alliances.
 
-**On a successful takeover**, the attacker captures 25% of the target's
+**On a successful hostile bid**, the attacker captures 25% of the target's
 **total wealth**, not just liquid cash. The target pays cash first, then
 Company, then Real Estate (at the standard 15% liquidation haircut) if
 the rest isn't enough to cover it. Real Estate is still your best
@@ -301,7 +304,7 @@ successfully protected themselves, a real reward for defending; half
 goes to the Bank.
 
 **Post-Attack Shield**: a player who was just successfully taken over is
-immune to further takeovers for 2 rounds. Nobody can just keep farming
+immune to further hostile bids for 2 rounds. Nobody can just keep farming
 the same undefended victim.
 
 **Anyone can gang up on a runaway leader**, not just dedicated
