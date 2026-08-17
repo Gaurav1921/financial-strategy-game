@@ -220,3 +220,72 @@ games does.
 - User acquisition cost benchmarks for strategy genre - affects whether
   organic/word-of-mouth growth (viable per the indie-niche argument above)
   is realistic for launch or whether some paid UA is unavoidable.
+
+## 8. The competitive set needed updating - the design outgrew it
+
+Raised directly, and it was a real gap: this file's competitive framing was
+written before Industries, Loans, Power Cards, and Joint-Venture betrayal
+existed as real financial mechanics, back when the design was closer to a
+mobile 4X strategy MMO with a bluffing layer bolted on (Section 1-5 above).
+The game reviews (BALANCE_TESTING.md, GDD.md) kept comparing the *shipped
+format* to Jackbox, Secret Hitler Online, and Among Us, accurate for "a
+browser party game for a group in one sitting," but none of those three
+have anything resembling a real economy: no Industries to read, no loans
+to leverage, no Joint Venture a partner can drain mid-compound for real
+profit. That comparison set was never wrong, it was just answering a
+narrower question (format and session shape) than the one that actually
+matters now (what does the *gameplay* resemble).
+
+**What the gameplay actually resembles, once the deep financial layer is
+taken seriously**: 18xx games (1830, 1846, and the rest of that family), a
+well-established, if niche, hobbyist genre built specifically around real
+market manipulation and bluffing baked directly into stock and company
+mechanics, not added on top. The pattern search turned up describes 18xx's
+core tension almost exactly: "if you can convince other players to leave
+you alone or make them believe they should invest in your train company
+before you dump it all, you've succeeded"
+([Smoothie Wars, bluffing/negotiation games guide](https://www.smoothiewars.com/blog/439-bluffing-negotiation-board-games)),
+the same shape as a Joint Venture partner letting a pot compound while
+secretly planning to drain it (GDD.md Section 7). Two more real,
+if lighter-weight, economic-negotiation comps: **Chinatown** (Z-Man Games,
+3-5 players, ~60 minutes, players negotiate and trade to assemble
+profitable city blocks,
+[boardgame.tips](https://boardgame.tips/chinatown)) and **Container** (an
+economic simulation built entirely around supply, demand, and market
+timing, recently re-released in a more compact 2026 edition,
+[Wikipedia](https://en.wikipedia.org/wiki/Container_(board_game))), both
+proof that "real negotiation over real economic value" is a viable,
+enduring format at a casual table, not just a hobbyist-only pursuit.
+
+**The honest contrast, not just the comp**: 18xx games are notoriously
+2-4+ hours and famously hostile to new players, the exact opposite of
+this design's "under an hour, teach it to friends" pitch (Section 1).
+That gap is the actual competitive position, not a coincidence to smooth
+over: **18xx-depth financial manipulation at Coup's pace and
+accessibility**, a combination none of the three original comparison
+games attempt (they have no real economy) and none of the three new ones
+attempt either (they have no hidden-role bluffing layer, Chinatown and
+Container are both full-information negotiation, nobody's secretly a
+Raider). Diplomacy sits closest to a true hybrid, already a cited
+mechanical influence on this design (Syndicate Move support math,
+Section 5 item 6; the "civil disorder" hold-on-timeout convention, Section
+4.1) and confirmed directly as a genuine hidden-traitor-plus-negotiation
+game in its own right
+([The Gamer, hidden traitor board games](https://www.thegamer.com/hidden-traitor-board-game-social-deduction-lying-games/)),
+but it has no stock market, loans, or companies, territory conquest is
+its only currency.
+
+**Updated positioning line**: keep Section 5's original recommendation
+(closed pods, real bluffing, no whales), but the comparison set a pitch
+should actually cite is **Jackbox/Secret Hitler for format and session
+shape, 18xx for what the gameplay actually asks of a player, Diplomacy for
+where the trust-and-betrayal layer comes from** - three real, different
+answers to three real, different questions, not one comparison set trying
+to answer all three at once.
+
+**What this doesn't cover**: direct player sentiment on why 18xx stays
+niche despite its depth (BoardGameGeek forums, r/18xx would be the next
+research step if this needs sharpening further); whether "18xx-depth at
+Coup's pace" is a pitch line that tests well with people who don't already
+know either genre, a real playtesting/messaging question, not a research
+one.
