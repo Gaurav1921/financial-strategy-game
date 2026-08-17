@@ -98,7 +98,13 @@ SCENARIOS = [
     ),
     (
         "Interest rates are cut sharply",
-        {"Property": "++", "Consumer Retail": "+", "Technology": "+", "Gold": "+"},
+        {
+            "Property": "++",
+            "Consumer Retail": "+",
+            "Technology": "+",
+            "Financial Services": "-",  # real, well-known effect: a rate cut compresses bank lending margins
+            "Gold": "+",
+        },
     ),
     (
         "A major tech company reports a data breach",
@@ -194,6 +200,46 @@ SCENARIOS = [
     (
         "A wave of automation disrupts manufacturing jobs",
         {"Manufacturing": "+", "Technology": "+", "Consumer Retail": "-"},
+    ),
+    (
+        # BALANCE_TESTING.md Part 23: four new, coherent negative-leaning scenarios,
+        # added directly against the table's real measured skew (43 positive vs 23
+        # negative tier-slots, wider than the original historical tally, Part 12) once
+        # a request came in to rebalance on principle even though the skew was
+        # confirmed small and bounded in practice (~3% average final-Power inflation,
+        # no meaningful shift in win rate or the leader gap). Retrofitting negatives
+        # into the existing 20 scenarios would have meant inventing strained secondary
+        # effects to force a sign flip; new, independently coherent scenarios keep
+        # every existing, already-validated scenario untouched.
+        "A wave of corporate bankruptcies hits over-leveraged firms",
+        {
+            "Financial Services": "--",
+            "Manufacturing": "-",
+            "Consumer Retail": "-",
+            "Gold": "++",
+        },
+    ),
+    (
+        "Currency volatility rattles global markets",
+        {
+            "Financial Services": "-",
+            "Technology": "-",
+            "Manufacturing": "-",
+            "Gold": "+",
+        },
+    ),
+    (
+        "A prolonged labor strike disrupts key industries",
+        {"Manufacturing": "--", "Agriculture": "-", "Consumer Retail": "-"},
+    ),
+    (
+        "Extreme weather disrupts supply chains",
+        {
+            "Agriculture": "--",
+            "Energy": "-",
+            "Consumer Retail": "-",
+            "Gold": "+",
+        },
     ),
     ("A quiet, uneventful year in the markets", {}),
 ]

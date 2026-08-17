@@ -2351,3 +2351,84 @@ same healthy pattern every clean addition in this file has produced.
 - Whether an `afk_kicked` player who's since accumulated a large frozen
   position creates any new dynamic once Power Cards or the Hidden Raider
   role specifically target them, not tested in combination.
+
+---
+
+# Part 24 - The scenario table's skew, measured, then rebalanced anyway
+
+## Why this exists
+Requested directly: the scenario table's positive skew, named honestly
+since Part 12 but never acted on, was raised again as something worth
+either verifying or fixing. Measured first before deciding anything.
+
+## The real numbers, not the historical estimate
+The figure this file had quoted since Part 12 (35 positive individual
+industry effects versus 21 negative) turned out to undercount the actual
+skew once recounted directly against the live table: **43 positive
+tier-slots versus 23 negative**, a 65%/35% split, wider than documented.
+A direct comparison, the current table versus a synthetic baseline (the
+same draws, sign-flipped 50% of the time to cancel the asymmetry by
+construction), 1500 trials, two seeds:
+
+| Configuration | Avg final Power (all players) | Top-vs-2nd gap | Top winner |
+|---|---|---|---|
+| Current (skewed) table | ~262 | ~12.0% | Socialite 71-73% |
+| Symmetrized baseline | ~254 | ~12.1% | Socialite 76-78% |
+
+**The skew inflates average end-of-game Power by about 3%** over a
+15-round game, real but small, and moves neither the win-rate spread nor
+the leader/second-place gap in any way that exceeds normal seed-to-seed
+noise already seen elsewhere in this file. Not a runaway effect,
+confirmed with numbers instead of just asserted.
+
+## Rebalanced anyway, on request
+Even though the skew wasn't causing a practical balance problem, it was
+never a deliberate choice either, it just happened, and the request was
+to close the gap rather than leave it. Two constraints shaped the fix:
+don't force a sign flip onto any of the existing, already-validated
+twenty scenarios (several have no natural negative angle, "a breakthrough
+vaccine is announced" doesn't have an honest downside), and any addition
+has to stay logical and readable, not random noise, the same standard
+every scenario in this table has always been held to.
+
+**One legitimate retrofit**: "Interest rates are cut sharply" gained a
+`Financial Services: -`, a real, well-known effect, rate cuts compress
+bank lending margins, not an invented one.
+
+**Four new, independently coherent scenarios**, each genuinely
+negative-leaning rather than a reskinned duplicate of an existing one: a
+wave of corporate bankruptcies, currency volatility, a prolonged labor
+strike, extreme weather disrupting supply chains. Each earns its
+effects the same way every other scenario does, real, describable cause
+and effect, not a sign flip for its own sake.
+
+## Result
+The table now runs **46 positive tier-slots versus 36 negative** (56%/44%,
+down from 65%/35%), across 24 scenarios, not 20. Re-running the exact
+same skewed-vs-symmetrized comparison confirms it worked:
+
+| Configuration | Avg final Power (all players) | Top-vs-2nd gap | Top winner |
+|---|---|---|---|
+| Rebalanced table | 254.30 | 11.5% | Socialite 66.3% |
+| Symmetrized baseline | 254.05 | 12.3% | Socialite 78.3% |
+
+The rebalanced table's average final Power (254.30) now lands almost
+exactly on the fully-symmetrized synthetic baseline (254.05), a gap of
+about a quarter of a point, down from roughly 8 points before. Full
+current configuration retested across the whole supported range (3, 6, 8,
+10 players, 1500 trials each): clean everywhere, Socialite leads at every
+count without crossing 72%, Aggressor stays low (2.5-6.5%), and variety
+holds or improves (Turtle's share actually grew, more volatility helps
+the diversified/defensive archetypes slightly, not the aggressive one,
+the same healthy direction every clean addition in this file has produced).
+
+## What Part 24 doesn't cover
+- Whether 46/36 (56%/44%) is the "right" amount of residual skew, or
+  whether it should be pushed all the way to an exact 50/50, chosen as a
+  defensible landing point from four new scenarios, not swept.
+- The four new scenarios' individual tier ranges were reused directly
+  from `SCENARIO_TIER_RANGES`/`GOLD_TIER_RANGES`, not custom-tuned per
+  scenario.
+- Retesting Parts 1-15's individual findings against the now-24-scenario
+  table in isolation, only the full combined configuration was retested
+  here.

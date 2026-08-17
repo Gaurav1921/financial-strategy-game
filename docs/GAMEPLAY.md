@@ -96,9 +96,9 @@ recession is officially declared." Each scenario has a logical,
 readable effect on a handful of industries (never all ten), and leaves
 the rest flat. This is real financial-literacy skill, not a dice roll:
 you can reason about "a recession hurts Consumer Retail," and it's
-genuinely unpredictable round to round, so it can't be memorized. Twenty
-example scenarios exist today; more can be added without touching the
-mechanic.
+genuinely unpredictable round to round, so it can't be memorized.
+Twenty-four example scenarios exist today; more can be added without
+touching the mechanic.
 
 **What a scenario actually pays out is never a fixed number.** The
 scenario text tells you the *direction and rough strength* (a strong move

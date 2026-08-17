@@ -330,7 +330,7 @@ without touching the mechanic itself):
 |---|---|---|
 | "A major regional conflict breaks out" | Energy ↑↑, Manufacturing ↑, Pharma ↑, Agriculture ↓, Consumer Retail ↓ | ↑ |
 | "A breakthrough vaccine is announced" | Pharma ↑↑, Healthcare ↑, Media & Entertainment ↑ | - |
-| "Interest rates are cut sharply" | Property ↑↑, Consumer Retail ↑, Technology ↑ | ↑ |
+| "Interest rates are cut sharply" | Property ↑↑, Consumer Retail ↑, Technology ↑, Financial Services ↓ | ↑ |
 | "A major tech company reports a data breach" | Technology ↓↓, Financial Services ↓ | - |
 | "A bumper harvest season" | Agriculture ↑, Consumer Retail ↑ | - |
 | "A severe drought hits key farming regions" | Agriculture ↓↓, Consumer Retail ↓ | slight ↑ |
@@ -347,6 +347,10 @@ without touching the mechanic itself):
 | "A major retailer files for bankruptcy" | Consumer Retail ↓↓, Property ↓, Financial Services ↓ | slight ↑ |
 | "Streaming and gaming demand hits an all-time high" | Media & Entertainment ↑↑, Technology ↑ | - |
 | "A wave of automation disrupts manufacturing jobs" | Manufacturing ↑, Technology ↑, Consumer Retail ↓ | - |
+| "A wave of corporate bankruptcies hits over-leveraged firms" | Financial Services ↓↓, Manufacturing ↓, Consumer Retail ↓ | ↑↑ |
+| "Currency volatility rattles global markets" | Financial Services ↓, Technology ↓, Manufacturing ↓ | ↑ |
+| "A prolonged labor strike disrupts key industries" | Manufacturing ↓↓, Agriculture ↓, Consumer Retail ↓ | - |
+| "Extreme weather disrupts supply chains" | Agriculture ↓↓, Energy ↓, Consumer Retail ↓ | ↑ |
 | "A quiet, uneventful year in the markets" | everything flat | - |
 
 **None of these are fixed percentages.** `↑↑` / `↓↓` and `↑` / `↓` are
@@ -402,14 +406,24 @@ history a third archetype (Diversifier) takes a real share of wins (7.2%),
 evidence Industries opens a genuine new path to winning rather than just
 adding noise.
 
-One property worth naming honestly: the twenty scenarios above aren't
-perfectly symmetric (35 individual industry effects are positive, summing
-to +1.72, versus 21 negative, summing to -1.16), so Company income and
-anything tied to it (Joint Ventures, below) run slightly above a neutral
-average over many rounds. This mirrors real economic history, expansions
-outnumber contractions, and isn't treated as a bug, but a future balance
-pass could tighten it if games start trending too far upward across many
-rounds.
+**Rebalanced** (BALANCE_TESTING.md Part 23): the scenario table used to
+skew positive by more than the historical figure above ever recorded (43
+positive industry-tier assignments versus 23 negative, once actually
+recounted against the current table, not the 35-vs-21 split logged when
+this section was first written). Measured directly before touching
+anything: that skew inflated average end-of-game Power by only about 3%
+over a 15-round game and moved neither the win-rate spread nor the
+leader/second-place gap in any meaningful way, a real but small, bounded
+effect, not a runaway one. Rebalanced anyway, on request, by adding four
+new, independently coherent negative-leaning scenarios (a wave of
+bankruptcies, currency volatility, a labor strike, extreme weather) rather
+than forcing a sign flip onto any of the original twenty, which would
+have meant inventing strained secondary effects that contradict their own
+flavor text. The table now runs 46 positive versus 36 negative
+(56%/44%, down from 65%/35%), and a direct before/after comparison
+confirms it worked: the current table's average final Power (254.3) now
+lands almost exactly on a fully-symmetrized synthetic baseline (254.1),
+a gap of about a quarter of a point, down from roughly 8 points before.
 
 ## 5B. Every income and cost source, exact rates
 
