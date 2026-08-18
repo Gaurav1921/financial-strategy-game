@@ -36,20 +36,37 @@ See [`docs/GDD.md`](docs/GDD.md) for the full design.
   bot pod) and `human_sim.py` (the human-shaped extension, mistakes,
   Power Cards, Hidden Raiders, and everything else validated since).
 - **`backend/`** - Python + FastAPI backend, structured as an `app/`
-  package per `CLAUDE.md`'s conventions. Currently a minimal scaffold
-  (`app/main.py` with a health-check endpoint); this is where round
-  resolution and game-state logic will live.
+  package per `CLAUDE.md`'s conventions. `app/core/` holds every game
+  constant and the scenario table (ported from `sim/`), `app/models/`
+  holds the Pydantic game state, `app/services/round_engine.py` resolves
+  the Building Phase's Income/Allocate/Market/Taxes loop, `app/services/room.py`
+  drives a live room's WebSocket connections and round timer, and `app/api/`
+  exposes it all (`POST /rooms`, `/rooms/{code}/join`, `/rooms/{code}/start`,
+  `WS /ws/rooms/{code}`). `backend/tests/` covers the engine and room layer.
+  Hostile Bids, Joint Ventures, Defense Pacts, Declare/Audit, Power Cards,
+  and the Hidden Raider are not built yet.
 - **`CLAUDE.md`** - coding standards for this project: writing style, code
   quality, docstrings, security practices, folder structure, and the
   linting/pre-commit tooling that enforces them.
-- **`frontend/`** - React + Vite frontend. Currently the default scaffold
-  from `npm create vite`; this is where the actual game UI will be built.
+- **`frontend/`** - React + Vite frontend. `src/screens/` holds the three
+  live screens (Landing, Lobby, GameRoom), `src/components/` the shared
+  Allocate form and Power leaderboard, `src/hooks/useRoomSocket.js` owns
+  the live WebSocket connection, and `src/api/client.js` wraps the REST
+  calls. `VITE_API_BASE` (see `.env.example`) points it at the backend.
 - **`.vscode/`** - editor settings that auto-select the project's Python
   environment and auto-run its setup task whenever this folder is opened
   in VS Code (see `docs/ENVIRONMENT_SETUP.md` for details).
 
 ## Status
 
-Design and balance-testing phase. No gameplay has been built yet - the
-current focus is nailing down the rules and numbers (see `docs/GDD.md`
-Section 9 for open questions) before writing game code.
+Design and balance-testing are done (see `docs/GDD.md` Section 9). A first
+playable slice is built and running: create a room, join over a link,
+play the full Building Phase economy (Company, Real Estate, Gold, the
+Market, Bank loans/deposits) round by round with a live, Power-only
+leaderboard, for as many rounds as the game runs (the backend still
+transitions into the Conflict Phase and to game-end on schedule, it just
+doesn't yet have combat to run there). Not yet built: Hostile Bids, Joint
+Ventures, Defense Pacts, Declare/Audit, Power Cards, the Hidden Raider,
+the Final Round, and disconnection handling beyond a basic connected/away
+flag - see `docs/GDD.md` Section 10 for the full v1 scope this is working
+toward.

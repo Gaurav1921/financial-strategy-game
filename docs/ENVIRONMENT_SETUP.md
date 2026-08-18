@@ -66,6 +66,26 @@ uvicorn app.main:app --reload
 ```
 Then check `http://127.0.0.1:8000/health` in a browser.
 
+Run the backend's test suite (`pytest`, `httpx`, and `websockets` are in
+`requirements-dev.txt`/`backend/requirements.txt`; `httpx` is only needed
+if you write `TestClient`-based tests, and `websockets` is what actually
+lets `uvicorn` serve the `/ws/rooms/{code}` endpoint at all, not just a
+test dependency):
+```powershell
+cd backend
+pytest tests
+```
+
+Run the frontend:
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+It expects the backend at `http://localhost:8000` by default; copy
+`frontend/.env.example` to `frontend/.env` (gitignored) if yours runs
+somewhere else.
+
 ## Code quality tooling
 Install the dev tools once, into the same `consortium` environment:
 ```powershell

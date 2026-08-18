@@ -28,11 +28,19 @@ convention = "google"
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["D104"] # empty package docstrings are fine for now
-"tests/*" = [
-    "S101", # assert is how pytest asserts; expected in every test
-    "S311", # seeding random.Random for game/test rolls, not crypto
+"sim/*.py" = [
+    "S311", # RNG use here is simulation randomness, not a security context
 ]
+# simulate_game's round loop (human_sim.py) and resolve_jvs_human/
+# resolve_power_card_claims/_resolve_power_card_action orchestrate many
+# feature-flagged steps in sequence; simulate_season (jv_simulation.py) is
+# the same shape. Splitting them is real, valuable work, but it's the exact
+# kind of refactor deferred this pass (see BALANCE_TESTING.md's own
+# "duplication/simplification" backlog): touching already-validated
+# simulation logic without time to re-verify every cited number is a worse
+# trade than a scoped, documented exception. Tracked, not silently ignored.
+"sim/human_sim.py" = ["C901"]
+"sim/jv_simulation.py" = ["C901"]
 
 [tool.ruff.format]
 quote-style = "double"

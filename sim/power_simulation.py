@@ -1,5 +1,4 @@
-"""
-Full-game "Power" simulation for the Live Mode redesign.
+"""Full-game "Power" simulation for the Live Mode redesign.
 
 Tests the structural questions raised in design discussion:
 - Does the Building Phase (no attacks) actually protect players from an
@@ -17,7 +16,7 @@ Round structure per player, per round:
   3. JV formation/resolution.
   4. Takeovers (Conflict Phase only).
 Company/real-estate/stock values only grow when income is reinvested into
-them — they don't also passively compound on top of that, which was a bug
+them, they don't also passively compound on top of that, which was a bug
 in the first draft (cash was being treated as both "income" and "leftover
 principal" at once, so spenders silently ran out of money to act with).
 
@@ -32,6 +31,7 @@ Archetypes (6-player pod, matching the "7 or fewer, Power Cards" format):
 """
 
 import csv
+import os
 import random
 
 ARCHETYPES = [
@@ -50,26 +50,30 @@ REAL_ESTATE_INCOME_RATE = 0.05  # slower, but protected from takeover
 STOCK_INCOME_RATE = 0.08  # tracks the target's growth, diluted
 LOAN_INTEREST_BASE = 0.08
 LOAN_RISK_PREMIUM = (
-    0.35  # extra interest per unit of leverage ratio (debt/power) — real risk pricing
+    0.35  # extra interest per unit of leverage ratio (debt/power), real risk pricing
 )
 BANKRUPTCY_LIQUIDATION_PCT = 0.85
 JV_DRAIN_BONUS = 0.65  # from the earlier, validated JV-only simulation
 JV_GROWTH = 0.12
 REP_TAX_THRESHOLD = 2
-TAKEOVER_CAPTURE_PCT = (
-    0.25  # attacker takes this fraction of defender's liquid+company power
-)
+TAKEOVER_CAPTURE_PCT = 0.25  # attacker takes this fraction of defender's liquid+company power
 DEFENDER_TIE_BONUS = 1.05  # "defender wins ties" (Risk-inspired)
-ATTACK_FAIL_LOSS_PCT = (
-    0.5  # attacker loses this fraction of committed stake on a failed attack
-)
+ATTACK_FAIL_LOSS_PCT = 0.5  # attacker loses this fraction of committed stake on a failed attack
 POST_ATTACK_SHIELD_ROUNDS = (
-    2  # rounds of immunity after being successfully taken over — no perpetual farming
+    2  # rounds of immunity after being successfully taken over, no perpetual farming
 )
 
 
 class Player:
+    """A fixed, non-adaptive bot playing one of the six base archetypes."""
+
     def __init__(self, idx, archetype):
+        """Sets up a fresh player at the game's starting position.
+
+        Args:
+            idx: This player's index into the game's player list.
+            archetype: One of the `ARCHETYPES` strategy labels.
+        """
         self.idx = idx
         self.archetype = archetype
         self.cash = 20.0
@@ -84,6 +88,7 @@ class Player:
         self.shielded_until_round = 0
 
     def total_power(self):
+        """Returns this player's net worth: all assets minus outstanding debt."""
         return (
             self.cash
             + self.company
@@ -95,6 +100,11 @@ class Player:
 
 
 def generate_income(p):
+    """Accrues one round's income, loan interest, and bankruptcy check.
+
+    Args:
+        p: The player to update in place.
+    """
     income = (
         p.company * COMPANY_INCOME_RATE
         + p.real_estate * REAL_ESTATE_INCOME_RATE
@@ -103,9 +113,7 @@ def generate_income(p):
     p.cash += income
 
     if p.debt > 0 and not p.bankrupt:
-        pre_debt_power = (
-            p.cash + p.company + p.real_estate + sum(p.stocks.values()) + p.captured
-        )
+        pre_debt_power = p.cash + p.company + p.real_estate + sum(p.stocks.values()) + p.captured
         leverage_ratio = p.debt / max(1.0, pre_debt_power)
         rate = LOAN_INTEREST_BASE + LOAN_RISK_PREMIUM * leverage_ratio
         p.debt *= 1 + rate
@@ -117,10 +125,17 @@ def generate_income(p):
         p.real_estate *= 1 - BANKRUPTCY_LIQUIDATION_PCT
         for k in p.stocks:
             p.stocks[k] *= 1 - BANKRUPTCY_LIQUIDATION_PCT
-        p.debt = 0.0  # discharged in the workout — diminished but stable, not a spiral
+        p.debt = 0.0  # discharged in the workout, diminished but stable, not a spiral
 
 
 def allocate(p, players, rng):
+    """Splits a player's cash on hand per their archetype's fixed rule.
+
+    Args:
+        p: The player to update in place.
+        players: The full player list, for archetypes that pick a stock target.
+        rng: The trial's random source.
+    """
     cash_available = p.cash
     if p.archetype == "Diversifier":
         p.company += cash_available * 0.35
@@ -158,6 +173,13 @@ def allocate(p, players, rng):
 
 
 def try_form_jv(p, players, rng):
+    """Attempts to add one Joint Venture ally, if this archetype seeks them.
+
+    Args:
+        p: The player attempting to form an alliance.
+        players: The full player list, to pick a partner from.
+        rng: The trial's random source.
+    """
     if p.archetype not in ("Socialite", "Diversifier"):
         return
     if len(p.allies) >= 2:
@@ -165,9 +187,7 @@ def try_form_jv(p, players, rng):
     candidates = [
         q
         for q in players
-        if q.idx != p.idx
-        and q.idx not in p.allies
-        and q.drain_count < REP_TAX_THRESHOLD
+        if q.idx != p.idx and q.idx not in p.allies and q.drain_count < REP_TAX_THRESHOLD
     ]
     if not candidates:
         return
@@ -178,6 +198,14 @@ def try_form_jv(p, players, rng):
 
 
 def resolve_jvs(players, rng, is_final_round):
+    """Settles every active JV pot, including any drain (betrayal) attempts.
+
+    Args:
+        players: The full player list.
+        rng: The trial's random source.
+        is_final_round: Whether this is the game's last round, which raises
+            the drain chance for both partners.
+    """
     for p in players:
         for ally_idx in list(p.allies):
             if ally_idx < p.idx:
@@ -216,7 +244,17 @@ def resolve_jvs(players, rng, is_final_round):
 
 
 def defense_power_of(target, players):
-    # real estate is the "protected" asset class by design — it should actually protect
+    """Computes how much attack power it takes to beat this target.
+
+    Args:
+        target: The player being evaluated as a potential takeover target.
+        players: The full player list, to look up allied defenders.
+
+    Returns:
+        The target's effective defense power, including allied support and
+        the defender-wins-ties bonus.
+    """
+    # real estate is the "protected" asset class by design, it should actually protect
     dp = target.real_estate * 0.9 + target.cash * 0.3
     for ally_idx in target.allies:
         ally = players[ally_idx]
@@ -225,6 +263,14 @@ def defense_power_of(target, players):
 
 
 def attempt_takeovers(players, rng, current_round):
+    """Lets each eligible Aggressor/Leverager attack their richest beatable target.
+
+    Args:
+        players: The full player list.
+        rng: The trial's random source (unused here, kept for call-site symmetry
+            with the other resolution functions).
+        current_round: The current round number, for shield-expiry checks.
+    """
     attackers = [
         p
         for p in players
@@ -232,9 +278,7 @@ def attempt_takeovers(players, rng, current_round):
     ]
     for attacker in attackers:
         candidates = [
-            q
-            for q in players
-            if q.idx != attacker.idx and current_round > q.shielded_until_round
+            q for q in players if q.idx != attacker.idx and current_round > q.shielded_until_round
         ]
         if not candidates:
             continue
@@ -247,9 +291,7 @@ def attempt_takeovers(players, rng, current_round):
 
         # a rational attacker hunts the richest target they can actually beat,
         # not just whoever has the lowest total power
-        beatable = [
-            q for q in candidates if attack_power > defense_power_of(q, players)
-        ]
+        beatable = [q for q in candidates if attack_power > defense_power_of(q, players)]
         if not beatable:
             continue
         target = max(beatable, key=lambda q: q.cash + q.company)
@@ -267,16 +309,14 @@ def attempt_takeovers(players, rng, current_round):
             attacker.cash -= stake * ATTACK_FAIL_LOSS_PCT
 
 
-LEADER_THREATENED_MARGIN = (
-    1.3  # leader is "worth ganging up on" once this far ahead of 2nd place
-)
+LEADER_THREATENED_MARGIN = 1.3  # leader is "worth ganging up on" once this far ahead of 2nd place
 
 
 def attempt_counter_attacks(players, rng, current_round):
-    """
-    Anyone (not just Aggressor/Leverager) can take a shot at a runaway leader.
-    Models real-player behavior a fixed-archetype tournament otherwise can't:
-    people gang up on whoever's winning too much, they don't just let it happen.
+    """Anyone (not just Aggressor/Leverager) can take a shot at a runaway leader.
+
+    Models real-player behavior a fixed-archetype tournament otherwise can't: people
+    gang up on whoever's winning too much, they don't just let it happen.
     """
     ranked = sorted(players, key=lambda p: p.total_power(), reverse=True)
     leader = ranked[0]
@@ -293,8 +333,7 @@ def attempt_counter_attacks(players, rng, current_round):
         p
         for p in players
         if p.idx != leader.idx
-        and p.archetype
-        not in ("Aggressor", "Leverager")  # those already got their shot above
+        and p.archetype not in ("Aggressor", "Leverager")  # those already got their shot above
         and p.cash > 10
         and not p.bankrupt
     ]
@@ -320,6 +359,15 @@ def attempt_counter_attacks(players, rng, current_round):
 
 
 def simulate_game(rng):
+    """Runs one full 15-round game across the six fixed archetypes.
+
+    Args:
+        rng: The trial's random source.
+
+    Returns:
+        A tuple of (final player list, takeover attempts counted, takeover
+        successes).
+    """
     players = [Player(i, ARCHETYPES[i]) for i in range(len(ARCHETYPES))]
     takeover_attempts = 0
     takeover_successes = 0
@@ -351,6 +399,17 @@ def simulate_game(rng):
 
 
 def run_trials(num_trials, seed=7):
+    """Runs many trials and aggregates win rate, power, and takeover stats.
+
+    Args:
+        num_trials: How many independent games to simulate.
+        seed: The random seed, for reproducible results.
+
+    Returns:
+        A tuple of (per-archetype result rows, the percentage of games
+        where SoloGrinder beat its strongest allied rival, and the average
+        number of successful takeovers per game).
+    """
     rng = random.Random(seed)
     win_counts = {a: 0 for a in ARCHETYPES}
     total_power = {a: 0.0 for a in ARCHETYPES}
@@ -395,17 +454,17 @@ def run_trials(num_trials, seed=7):
 
 if __name__ == "__main__":
     rows, solo_pct, avg_takeovers = run_trials(2000)
-    with open("d:/Game/sim/power_results.csv", "w", newline="") as f:
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "power_results.csv")
+    with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["Archetype", "WinRatePct", "AvgPower"])
         writer.writeheader()
         writer.writerows(rows)
 
     print("=== Archetype performance (2000 trials) ===")
     for r in sorted(rows, key=lambda r: -r["WinRatePct"]):
-        print(
-            f"{r['Archetype']:<12} win rate {r['WinRatePct']:>5}%   avg power {r['AvgPower']:>7}"
-        )
+        print(f"{r['Archetype']:<12} win rate {r['WinRatePct']:>5}%   avg power {r['AvgPower']:>7}")
     print(
-        f"\nSoloGrinder beats the strongest allied rival in {solo_pct}% of games where allied rivals exist."
+        f"\nSoloGrinder beats the strongest allied rival in {solo_pct}% of games "
+        "where allied rivals exist."
     )
     print(f"Average successful takeovers per game: {avg_takeovers}")
